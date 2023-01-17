@@ -45,8 +45,8 @@ jobs:
         id: variables_step
         run: |
           poetry version $(poetry version --short)-dev.$GITHUB_RUN_NUMBER
-          echo "PACKAGE_NAME=$(poetry version | awk '{print $1}') >> $GITHUB_ENV "
-          echo "PACKAGE_VERSION=$(poetry version --short) >> $GITHUB_ENV"
+          echo "PACKAGE_NAME=$(poetry version | awk '{print $1}')" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(poetry version --short)" >> $GITHUB_ENV
         shell: bash
 
       - name: build
@@ -62,8 +62,16 @@ jobs:
         uses: actions/upload-artifact@v3
         if: matrix.python-versions == '3.10'
         with:
-          name: ${{ env.PACKAGE_NAME }}-${{ env.PACKAGE_VERSION }}.zip
+          name: ${{ env.PACKAGE_NAME }}-${{ env.PACKAGE_VERSION }}
           path: dist/*.tar.gz
+          if-no-files-found: error
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        if: matrix.python-versions == '3.10'
+        with:
+          name: Coverage
+          path: htmlcov
           if-no-files-found: error
 
       - name: Test Report
