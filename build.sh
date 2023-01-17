@@ -14,6 +14,6 @@ black src
 # check syntax
 flake8
 
-# execute unit tests
-pytest
+# execute unit tests with code coverage
+pytest -s --cov-config=.coveragerc --cov=src --cov-append --cov-report=xml --cov-report term-missing --cov-report=html tests
 
