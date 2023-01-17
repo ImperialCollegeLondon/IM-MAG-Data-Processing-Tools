@@ -19,4 +19,4 @@ def goodbye(name: str, formal: bool = False):
 
 
 if __name__ == "__main__":
-    app()
+    app()  # pragma: no cover

@@ -4,17 +4,27 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 
 ## Install and run tool
 
+```
 python3 src/main.py hello mag
+```
 
-or via poetry to ensure clean dependecies
+or via poetry to ensure clean dependecies:
 
-poetry run python3 src/main.py hello mag
+```
+poetry run mag hello world
+```
 
-## Dev Quick start
+or manually using poetry:
+
+```
+poetry run python3 src/main.py hello world
+```
+
+## Developer Quick start
 
 Open folder in VS Code with Dev Containers.
 
-install poetry  (done for you in dev container init)
+install poetry (done for you in dev container init is using vscode)
 
 ```
 ./first-time.sh
@@ -26,7 +36,7 @@ Check it works
 $ poetry --version
 Poetry (version 1.3.2)
 
-# also you  can update it!
+# also you can update it
 $ poetry self update
 ```
 
@@ -50,18 +60,24 @@ flake8
 black src
 ```
 
-Run the CLI tool:
-
-```
-python3 src/main.py hello mag
-
-or via poetry to ensure clean dependecies
-
-poetry run python3 src/main.py hello mag
-```
-
-## Run the build
+## Run the full build
 
 From within the devcontainer (or after you have installed poetry)
 
 $ ./build.sh
+
+
+## Run some tests
+
+Either use the test runner in vscode (with debugging)
+
+Or on the cli using pytest
+
+```
+$ pytest
+
+# or a subset of tests
+$ pytest tests/test_main.py
+$ pytest -k hello
+```
+

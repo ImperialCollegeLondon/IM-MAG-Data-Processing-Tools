@@ -1,0 +1,85 @@
+# This is a basic workflow to help you get started with Actions
+
+name: dev build CI
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    strategy:
+      matrix:
+        #python-versions: ['3.7', '3.8', '3.9', '3.10']
+        python-versions: ['3.9', '3.10']
+        os: [ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
+    # map step outputs to job outputs so they can be share among jobs
+    outputs:
+      package_version: ${{ steps.variables_step.outputs.package_version }}
+      package_name: ${{ steps.variables_step.outputs.package_name }}
+      repo_name: ${{ steps.variables_step.outputs.repo_name }}
+      repo_owner: ${{ steps.variables_step.outputs.repo_owner }}
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-versions }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+        # pip install tox tox-gh-actions poetry
+
+
+
+      # declare package_version, repo_owner, repo_name, package_name so you may use it in web hooks.
+      - name: Declare variables for convenient use
+        id: variables_step
+        run: |
+          poetry version $(poetry version --short)-dev.$GITHUB_RUN_NUMBER
+          echo "::set-output name=repo_owner::${GITHUB_REPOSITORY%/*}"
+          echo "::set-output name=repo_name::${GITHUB_REPOSITORY#*/}"
+          echo "::set-output name=package_name::`poetry version | awk '{print $1}'`"
+          echo "::set-output name=package_version::`poetry version --short`"
+        shell: bash
+
+      - name: build
+        run: |
+          ./build.sh
+
+      - name: Build wheels and source tarball
+        run: |
+          poetry lock
+          poetry build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        if: matrix.python-versions == '3.10'
+        with:
+          name: ${{ steps.variables_step.outputs.package_name }}-${{ steps.variables_step.outputs.package_version }}.zip
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Test Results (${{ matrix.python-versions }})
+          path: 'test-results.xml'
+          reporter: java-junit

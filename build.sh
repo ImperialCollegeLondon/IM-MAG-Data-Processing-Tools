@@ -1,19 +1,20 @@
 #!/bin/bash
 set -e
 
-#load the python virtual environment
-source .venv/bin/activate
-
 # restore dependencies
 poetry install
 
+# load the python virtual environment
+source .venv/bin/activate
+
 # tidy up fomatting
-isort src tests
-black src
+poetry run isort src tests
+poetry run black src
 
 # check syntax
-flake8
+poetry run flake8
 
 # execute unit tests with code coverage
-pytest -s --cov-config=.coveragerc --cov=src --cov-append --cov-report=xml --cov-report term-missing --cov-report=html tests
+poetry run pytest -s --cov-config=.coveragerc --cov=src --cov-append --cov-report=xml --cov-report term-missing --cov-report=html --junitxml=test-results.xml tests
+
 

@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Data tools for MAG GSE data processing"
 authors = ["Imperial College"]
 readme = "README.md"
+packages = [
+    { include = "src" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -15,6 +18,10 @@ pytest = "^7.2.1"
 pytest-cov = "^4.0.0"
 black = "^22.12.0"
 flake8 = "^6.0.0"
+
+[tool.poetry.scripts]
+# can execute via poetry, e.g. `poetry run mag hello world`
+mag = 'src.main:app'
 
 [build-system]
 requires = ["poetry-core"]
