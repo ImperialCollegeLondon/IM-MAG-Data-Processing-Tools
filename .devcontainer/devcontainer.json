@@ -10,6 +10,13 @@
 		"ghcr.io/dhoeric/features/act:1": {}
 	}
 
+	// install poetry
+	, "postStartCommand": "./first-time.sh"
+
+    , "extensions": [
+        "EditorConfig.EditorConfig",
+        "ms-python.python"
+    ]
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
