@@ -6,8 +6,10 @@ import typer
 import check_gaps
 
 app = typer.Typer()
+
 app.registered_commands += check_gaps.app.registered_commands #\
 #                + other.app.registered_commands
+
 
 @app.command()
 def goodbye(name: str, formal: bool = False):

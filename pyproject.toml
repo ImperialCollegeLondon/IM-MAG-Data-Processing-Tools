@@ -5,8 +5,7 @@ description = "Data tools for MAG GSE data processing"
 authors = ["Imperial College"]
 readme = "README.md"
 packages = [
-    { include = "*", from="src" },
-    { include = "checkgaps.py", from="src" },
+    { include ="src" },
 ]
 
 [tool.poetry.dependencies]
