@@ -1,7 +1,7 @@
 # install poetry
 curl -sSL https://install.python-poetry.org | python3 -
 
-# if not in dev container you may need to install pyenv too
+# if not in dev container you probably need to install pyenv too
 # curl https://pyenv.run | bash
 
 # add pyenv to bashrc
