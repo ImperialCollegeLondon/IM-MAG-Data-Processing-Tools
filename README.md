@@ -5,16 +5,23 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 ## Install and run tool
 
 ```
-python3 src/main.py hello mag
+poetry install
 ```
 
-or via poetry to ensure clean dependecies:
+run via poetry to ensure clean dependecies:
 
 ```
 poetry run mag hello world
 ```
 
-or manually using poetry:
+Or run directly
+
+```
+python3 src/main.py hello mag
+```
+
+
+or manually using poetry venv:
 
 ```
 poetry run python3 src/main.py hello world
@@ -27,7 +34,7 @@ Open folder in VS Code with Dev Containers.
 install poetry (done for you in dev container init is using vscode)
 
 ```
-./first-time.sh
+./dev-env-first-time.sh
 ```
 
 Check it works
@@ -81,3 +88,25 @@ $ pytest tests/test_main.py
 $ pytest -k hello
 ```
 
+## You can also access many version of python using pyenv
+
+```
+pyenv versions
+```
+
+And change to a different version of python easily
+
+```
+pyenv local 3.10
+poetry env use python3.10
+python3 --version
+poetry install
+poetry run mag hello world
+
+
+pyenv local 3.11
+poetry env use python3.11
+python3 --version
+poetry install
+poetry run mag hello world
+```

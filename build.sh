@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# what version is this?
+python3 --version
+
 # restore dependencies
 poetry install
 

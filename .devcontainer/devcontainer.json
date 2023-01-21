@@ -1,24 +1,57 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/debian
 {
-	"name": "Debian",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/base:bullseye",
+	"build": {
+        "dockerfile": "./Dockerfile",
+        "context": "."
+    },
 	"features": {
-		"ghcr.io/devcontainers/features/python:1": {},
-		"ghcr.io/devcontainers-contrib/features/poetry:2": {},
-		"ghcr.io/dhoeric/features/act:1": {}
-	}
-
+        "ghcr.io/devcontainers/features/common-utils:2":{
+            "installZsh": "true",
+            "username": "vscode",
+            "userUid": "1000",
+            "userGid": "1000",
+            "upgradePackages": "true"
+        },
+		"ghcr.io/devcontainers/features/git:1": {
+            "version": "latest",
+            "ppa": "false"
+        },
+		//"ghcr.io/devcontainers-contrib/features/poetry:2": {},
+		//"ghcr.io/dhoeric/features/act:1": {}
+	},
+	"remoteEnv": {
+		// add the pyenv bin and poetry to the PATH for the dev user vscode
+        "PATH": "/home/vscode/.pyenv/bin:/home/vscode/.local/bin:${containerEnv:PATH}"
+    },
 	// install poetry
-	, "postStartCommand": "./first-time.sh"
+	"postStartCommand": "./dev-env-first-time.sh",
 
-    , "extensions": [
+	// Configure tool-specific properties.
+	"customizations": {
+		// Configure properties specific to VS Code.
+		"vscode": {
+			// Set *default* container specific settings.json values on container create.
+			"settings": {
+				"python.defaultInterpreterPath": "/usr/local/bin/python"
+			}
+		}
+	},
+
+    "extensions": [
         "EditorConfig.EditorConfig",
         "ms-python.python"
-    ]
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+    ],
+
+    // change to zsh default shell
+	"settings": {
+		"terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+            "zsh": {
+                "path": "/bin/zsh"
+            }
+        }
+	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -27,5 +60,5 @@
 	// "customizations": {},
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	"remoteUser": "vscode"
 }
