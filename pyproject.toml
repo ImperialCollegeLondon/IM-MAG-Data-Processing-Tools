@@ -5,11 +5,12 @@ description = "Data tools for MAG GSE data processing"
 authors = ["Imperial College"]
 readme = "README.md"
 packages = [
-    { include = "src" },
+    { include = "*", from="src" },
+    { include = "checkgaps.py", from="src" },
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.8"
 typer = {extras = ["all"], version = "^0.7.0"}
 isort = "^5.11.4"
 
