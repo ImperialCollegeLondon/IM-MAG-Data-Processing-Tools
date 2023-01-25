@@ -7,7 +7,7 @@ import check_gaps
 
 app = typer.Typer()
 
-app.registered_commands += check_gaps.app.registered_commands #\
+app.registered_commands += check_gaps.app.registered_commands  # \
 #                + other.app.registered_commands
 
 
