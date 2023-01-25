@@ -16,15 +16,17 @@
 		"ghcr.io/devcontainers/features/git:1": {
             "version": "latest",
             "ppa": "false"
-        },
+        }
+        // poetry also available as a dev container feature but we install it using dev-env-first-time.sh so PATH is setup
 		//"ghcr.io/devcontainers-contrib/features/poetry:2": {},
+        // uncommment act if you want to eb able to run github actions locally. This needs "docker in docker" setup for devcontainer
 		//"ghcr.io/dhoeric/features/act:1": {}
 	},
 	"remoteEnv": {
 		// add the pyenv bin and poetry to the PATH for the dev user vscode
         "PATH": "/home/vscode/.pyenv/bin:/home/vscode/.local/bin:${containerEnv:PATH}"
     },
-	// install poetry
+	// install poetry on first startup in vscode
 	"postStartCommand": "./dev-env-first-time.sh",
 
 	// Configure tool-specific properties.
@@ -33,7 +35,11 @@
 		"vscode": {
 			// Set *default* container specific settings.json values on container create.
 			"settings": {
-				"python.defaultInterpreterPath": "/usr/local/bin/python"
+				// not using venvs? uncomment this
+                //"python.defaultInterpreterPath": "/usr/local/bin/python"
+
+                // use the active venv
+                "python.defaultInterpreterPath": ".venv/bin/python3"
 			}
 		}
 	},

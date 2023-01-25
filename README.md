@@ -2,42 +2,29 @@
 
 A collection of tools to process IMAP Magnetometer science data, which are 3 dimensional vectors saved in CSV files. Written in python.
 
-## Install and run tool
-
-```
-poetry install
-```
-
-run via poetry to ensure clean dependecies:
-
-```
-poetry run mag hello world
-```
-
-Or run directly
-
-```
-python3 src/main.py hello mag
-```
-
-
-or manually using poetry venv:
-
-```
-poetry run python3 src/main.py hello world
-```
-
 ## Developer Quick start
+
+- install vs code and docker (tested on windows with WSL2 and docker desktop)
+- clone the repository
+- open the repo in vscode and switch to the dev container (CTRL-P -> Reopen in dev container)
+- open a terminal and run `poetry install` to restore dependencies
+- run the code within poetry in a virtual environment: `poetry run mag hello bob`
+- or run the code with python3 in a virtual environment: `poetry shell` and `poetry install` to setup env and then `python3 src/main.py hello alice` or even just `mag hello charlie` works because the command is actually installed in the virtual env.
+- One click to run the tests and generate coverage: `./build.sh`
+- One click to package the app into the /dist folder: `./pack.sh`
+- One click to run the tests and package the app across multiple versions of python 3.9, 3.10, 3.11 etc: `./build-all.sh`
+
+## Setup
 
 Open folder in VS Code with Dev Containers.
 
-install poetry (done for you in dev container init is using vscode)
+(if not using devcontainers) install poetry (this is done for you in dev container initialisation)
 
 ```
 ./dev-env-first-time.sh
 ```
 
-Check it works
+Check install has works
 
 ```
 $ poetry --version
@@ -67,18 +54,15 @@ flake8
 black src
 ```
 
-## Run the full build
+## Run the build and the tests
 
-From within the devcontainer (or after you have installed poetry)
+From within the devcontainer (or after you have installed poetry) you can run the build script which will install dependencies and run the tests
 
-$ ./build.sh
+```bash
+./build.sh
+```
 
-
-## Run some tests
-
-Either use the test runner in vscode (with debugging)
-
-Or on the cli using pytest
+You can also run tests using the test toolling in vscode or the pytest cli:
 
 ```
 $ pytest
@@ -88,7 +72,20 @@ $ pytest tests/test_main.py
 $ pytest -k hello
 ```
 
-## You can also access many version of python using pyenv
+To build for all the versions of python you can run
+
+```bash
+./build-all.sh
+```
+
+Test reports appear automatically in the github actions report
+
+Code coverage data is generated on build into the folder `htmlcov` and is uploaded on every Actions build
+
+
+## Access different versions of python using pyenv
+
+List the installed versions
 
 ```
 pyenv versions
@@ -110,3 +107,29 @@ python3 --version
 poetry install
 poetry run mag hello world
 ```
+
+## Python command line app using Typer
+
+This repo publishes to the `/dist` folder a python wheel (.whl) and tar containing a CLI executable called `demo` that can be installed and run. This app uses the library [typer](https://typer.tiangolo.com/) to produce a user friendly interactive cli.
+
+## Tools - poetry, pyenv, isort, flake8, black
+
+All these tools are preinstalled in the dev container:
+
+- **Python3** - multiple versions installed and available, managed using pyenv
+- **Poetry** - [tool to manage python dependencies](https://python-poetry.org/), tools and package
+- **isort, black and flake8** - configured to lint and tidy up your python code automatically. Executed using ./build.sh and CTRL+SHIFT+B (build in vscode)
+
+
+## About the developer environment
+
+This repository uses an opinionated setup for a python command line app. It uses modern python tooling to make dev easier. it will
+
+- configures the VS Code IDE for east python3 based development, including testing and linting
+- use a docker based development environment with vscode devcontainer
+- do package management and python version tooling using Poetry and pyenv
+- continuous integration using GitHub including unit tests and code coverage
+
+## Continuous Integration with GitHub Actions
+
+The `.github/workflows/ci.yml` define a workflow to run on build and test the CLI against multiple versions of python. Build artifacts are generated and a copy of the cli app is available for download for every build
