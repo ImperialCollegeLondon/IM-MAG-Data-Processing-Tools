@@ -2,6 +2,15 @@
 
 A collection of tools to process IMAP Magnetometer science data, which are 3 dimensional vectors saved in CSV files. Written in python.
 
+## How to install and use
+
+See `install.sh`.
+
+- Download the wheel/tar from the GitHub Actions build artifacts
+- Install pipx (not required but this ensures the tool is installed in it's own environment and dependencies cannot make a mess of your system)
+- [install it with pipx](https://pypa.github.io/pipx/docs/#pipx-install) or with pip if you must.
+- Run `mag hello world` on the command line to check it installed ok
+
 ## Developer Quick start
 
 - install vs code and docker (tested on windows with WSL2 and docker desktop)
