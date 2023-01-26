@@ -131,3 +131,4 @@ dmypy.json
 
 # mkdocs build dir
 site/
+/gap-report.txt

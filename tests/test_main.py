@@ -17,13 +17,7 @@ def response():
     See more at: http://doc.pytest.org/en/latest/fixture.html
     """
 
-def test_app_says_hello():
-    result = runner.invoke(app, ["hello", "Camila"])
+def test_app_counts_down():
+    result = runner.invoke(app, ["countdown"])
     assert result.exit_code == 0
-    assert "Hello Camila" in result.stdout
-
-def test_app_says_goodbye():
-    name = "Camila"
-    result = runner.invoke(app, ["goodbye", name, "--formal"])
-    assert result.exit_code == 0
-    assert f"Goodbye Ms. {name}. Have a good day." in result.stdout
+    assert "IMAP launch is " in result.stdout
