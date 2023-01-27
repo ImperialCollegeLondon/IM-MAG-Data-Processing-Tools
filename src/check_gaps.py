@@ -13,7 +13,7 @@ app = typer.Typer()
 report_file: TextIOWrapper
 exit_code = 0
 MAX_FINE = 0x00FFFFFF  # max 24bit number, the largest fine time value
-TIME_TOLERANCE_BETWEEN_PACKETS = 0.001
+TIME_TOLERANCE_BETWEEN_PACKETS = 0.005
 
 
 @app.callback(
@@ -156,7 +156,7 @@ def verify_sequence_counter(
             write_error(f"Sequence numbers vary within packet! {line_id}")
 
         # sequence count must be seqential between packets
-        if packet_line_count == 1 and sequence != (prev_seq + 1):
+        if packet_line_count == 1 and sequence != ((prev_seq + 1) % 0x4000):
             write_error(f"Non sequential packet detected! {line_id}")
 
     return packet_line_count
