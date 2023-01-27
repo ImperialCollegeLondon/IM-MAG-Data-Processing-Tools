@@ -14,11 +14,11 @@ class ModeConfig():
 
     def __init__(self, mode:Mode):
         if(mode == Mode.normal):
-            vectors_per_packet = 32
-            seconds_between_packets = 2
+            self.vectors_per_packet = 32
+            self.seconds_between_packets = 2
         elif(mode == Mode.burst128):
-            vectors_per_packet = 256
-            seconds_between_packets = 2
+            self.vectors_per_packet = 256
+            self.seconds_between_packets = 2
         elif(mode == Mode.burst64):
-            vectors_per_packet = 256
-            seconds_between_packets = 2
+            self.vectors_per_packet = 256
+            self.seconds_between_packets = 2
