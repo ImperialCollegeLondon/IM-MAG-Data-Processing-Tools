@@ -106,7 +106,7 @@ def test_check_gap_finds_invalid_if_course_time_jumps_3_seconds_not_2():
     result = runner.invoke(
         app, ["check-gap", "sample-data/burst_data20230112-11h23-bad-time-course.csv"])
 
-    assert "primary timestamp is 3.00000s after the previous packets (more than 2.001s). line number 258, sequence count: 1" in result.stdout
+    assert "primary timestamp is 3.00000s after the previous packets (more than 2.005s). line number 258, sequence count: 1" in result.stdout
     assert result.exit_code == 2
 
 
@@ -115,5 +115,13 @@ def test_check_gap_finds_invalid_if_course_time_is_under_threshold_in_secondary_
     result = runner.invoke(
         app, ["check-gap", "sample-data/burst_data20230112-11h23-bad-time-fine.csv"])
 
-    assert "secondary timestamp is 1.98998s after the previous packets (less than 1.999s). line number 258, sequence count: 1" in result.stdout
+    assert "secondary timestamp is 1.98998s after the previous packets (less than 1.995s). line number 258, sequence count: 1" in result.stdout
     assert result.exit_code == 2
+
+
+def test_check_gap_ignores_wrapping_sequence_counter():
+
+    result = runner.invoke(
+        app, ["check-gap", "sample-data/example-seq-count-wraps.csv"])
+
+    assert "Non sequential packet detected" not in result.stdout
