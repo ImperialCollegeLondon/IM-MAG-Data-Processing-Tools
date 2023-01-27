@@ -16,7 +16,8 @@ default_command_params = ["check-gap", "--mode", "BurstE128", "sample-data/examp
 alt_command_params = ["check-gap", "-f", "-m", "normalE8", "sample-data/example.csv"]
 
 
-@pytest.fixture(autouse=True)  # or use something like @pytest.mark.usefixtures("run_around_tests")
+# or use something like @pytest.mark.usefixtures("run_around_tests")
+@pytest.fixture(autouse=True)
 def run_around_tests():
 
     if (report_file.exists()):
@@ -65,7 +66,8 @@ def test_check_gap_will_overwrite_report_when_forced():
 
 def test_check_gap_finds_invalid_seqence_counter():
 
-    result = runner.invoke(app, ["check-gap", "--mode", "normalE8", "sample-data/normal_data20230112-11h23-bad-sequence.csv"])
+    result = runner.invoke(app, ["check-gap", "--mode", "normalE8",
+                           "sample-data/normal_data20230112-11h23-bad-sequence.csv"])
 
     assert "Non sequential packet detected! line number 34, sequence count: 99, vector number 1" in result.stdout
     assert result.exit_code == 2
@@ -73,7 +75,8 @@ def test_check_gap_finds_invalid_seqence_counter():
 
 def test_check_gap_finds_invalid_seqence_counter_within_packet():
 
-    result = runner.invoke(app, ["check-gap", "--mode", "normalE8", "sample-data/normal_data20230112-11h23-bad-sequence-within-packet.csv"])
+    result = runner.invoke(app, ["check-gap", "--mode", "normalE8",
+                           "sample-data/normal_data20230112-11h23-bad-sequence-within-packet.csv"])
 
     assert "Non sequential packet detected! line number 4, sequence count: 99" in result.stdout
     assert result.exit_code == 2
@@ -81,7 +84,8 @@ def test_check_gap_finds_invalid_seqence_counter_within_packet():
 
 def test_check_gap_has_no_errors_for_valid_burst_data():
 
-    result = runner.invoke(app, ["check-gap", "sample-data/burst_data20230112-11h23.csv"])
+    result = runner.invoke(
+        app, ["check-gap", "sample-data/burst_data20230112-11h23.csv"])
 
     assert result.exit_code == 0
     assert "Gap checker complete successfully. Checked 1 packet(s) across 513 lines." in result.stdout
@@ -89,8 +93,27 @@ def test_check_gap_has_no_errors_for_valid_burst_data():
 
 def test_check_gap_finds_invalid_if_in_wrong_mode():
 
-    result = runner.invoke(app, ["check-gap", "--mode", "normalE8", "sample-data/burst_data20230112-11h23.csv"])
+    result = runner.invoke(
+        app, ["check-gap", "--mode", "normalE8", "sample-data/burst_data20230112-11h23.csv"])
 
     assert "Expected 32 vectors in packet but found 256" in result.stdout
     assert "Error - found bad science data! Checked 1 packet" in result.stdout
+    assert result.exit_code == 2
+
+
+def test_check_gap_finds_invalid_if_course_time_jumps_3_seconds_not_2():
+
+    result = runner.invoke(
+        app, ["check-gap", "sample-data/burst_data20230112-11h23-bad-time-course.csv"])
+
+    assert "primary timestamp is 3.00000s after the previous packets (more than 2.001s). line number 258, sequence count: 1" in result.stdout
+    assert result.exit_code == 2
+
+
+def test_check_gap_finds_invalid_if_course_time_is_under_threshold_in_secondary_timestamp():
+
+    result = runner.invoke(
+        app, ["check-gap", "sample-data/burst_data20230112-11h23-bad-time-fine.csv"])
+
+    assert "secondary timestamp is 1.98998s after the previous packets (less than 1.999s). line number 258, sequence count: 1" in result.stdout
     assert result.exit_code == 2

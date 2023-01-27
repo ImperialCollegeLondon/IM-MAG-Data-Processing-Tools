@@ -12,6 +12,8 @@ app = typer.Typer()
 
 report_file: TextIOWrapper
 exit_code = 0
+MAX_FINE = 0x00FFFFFF  # max 24bit number, the largest fine time value
+TIME_TOLERANCE_BETWEEN_PACKETS = 0.001
 
 
 @app.callback(
@@ -59,10 +61,10 @@ def main(
 
     for row in reader:
         sequence = int(row["sequence"])
-        # pri_coarse = int(row["pri_coarse"])
-        # pri_fine = int(row["pri_fine"])
-        # sec_coarse = int(row["sec_coarse"])
-        # sec_fine = int(row["sec_fine"])
+        pri_coarse = int(row["pri_coarse"])
+        pri_fine = int(row["pri_fine"])
+        sec_coarse = int(row["sec_coarse"])
+        sec_fine = int(row["sec_fine"])
 
         packet_line_count += 1
 
@@ -72,6 +74,26 @@ def main(
 
         packet_line_count = verify_sequence_counter(
             mode_config, line_count, packet_line_count, prev_seq, sequence
+        )
+
+        verify_timestamp(
+            mode_config,
+            line_count,
+            packet_line_count,
+            sequence,
+            pri_coarse,
+            pri_fine,
+            "primary",
+        )
+
+        verify_timestamp(
+            mode_config,
+            line_count,
+            packet_line_count,
+            sequence,
+            sec_coarse,
+            sec_fine,
+            "secondary",
         )
 
         line_count += 1
@@ -89,6 +111,27 @@ def main(
     report_file.close()
     if exit_code != 0:
         raise typer.Exit(code=exit_code)
+
+
+def validate_check_gap_args(data_file, report_file_path, mode, force):
+    if report_file_path.exists():
+        if force:
+            os.remove(report_file_path)
+        else:
+            print(f"{report_file_path} already exists - delete file or use --force")
+            raise typer.Abort()
+
+    if "burst" in data_file.name and mode == Mode.unknown:
+        mode = Mode.burst128
+    elif "normal" in data_file.name and mode == Mode.unknown:
+        mode = Mode.normal
+
+    if mode == Mode.unknown:
+        print(
+            "unable to determine the mode - specify --mode NormalE8, --mode BurstE64. See --help for more info."
+        )
+        raise typer.Abort()
+    return mode
 
 
 def verify_sequence_counter(
@@ -119,25 +162,49 @@ def verify_sequence_counter(
     return packet_line_count
 
 
-def validate_check_gap_args(data_file, report_file_path, mode, force):
-    if report_file_path.exists():
-        if force:
-            os.remove(report_file_path)
-        else:
-            print(f"{report_file_path} already exists - delete file or use --force")
-            raise typer.Abort()
+def verify_timestamp(
+    mode_config: ModeConfig,
+    line_count: int,
+    packet_line_count: int,
+    sequence: int,
+    coarse: int,
+    fine: int,
+    timestamp_type: str,
+):
+    line_id = f"line number { line_count+2 }, sequence count: { sequence }"
 
-    if "burst" in data_file.name and mode == Mode.unknown:
-        mode = Mode.burst128
-    elif "normal" in data_file.name and mode == Mode.unknown:
-        mode = Mode.normal
+    prev_time = verify_timestamp.prev_time[timestamp_type]
+    time: float = float(coarse) + (float(fine) / float(MAX_FINE))
+    gap_between_packets = time - prev_time
 
-    if mode == Mode.unknown:
-        print(
-            "unable to determine the mode - specify --mode NormalE8, --mode BurstE64. See --help for more info."
+    if line_count > 0 and packet_line_count == 1:
+
+        lower_limit = (
+            mode_config.seconds_between_packets - TIME_TOLERANCE_BETWEEN_PACKETS
         )
-        raise typer.Abort()
-    return mode
+        upper_limit = (
+            mode_config.seconds_between_packets + TIME_TOLERANCE_BETWEEN_PACKETS
+        )
+
+        if gap_between_packets < lower_limit:
+            write_error(
+                f"{timestamp_type} timestamp is {gap_between_packets:.5f}s after the previous packets (less than {lower_limit}s). {line_id}"
+            )
+        if gap_between_packets > upper_limit:
+            write_error(
+                f"{timestamp_type} timestamp is {gap_between_packets:.5f}s after the previous packets (more than {upper_limit}s). {line_id}"
+            )
+
+    elif line_count > 0 and packet_line_count > 1:
+        if gap_between_packets > 0:
+            write_error(
+                f"{timestamp_type} timestamp should be the same as the previous line. {line_id}"
+            )
+
+    verify_timestamp.prev_time[timestamp_type] = time
+
+
+verify_timestamp.prev_time: dict = {"primary": float(0), "secondary": float(0)}
 
 
 def write_line(message: str):

@@ -8,10 +8,10 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "src/main.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["hello","bob"]
+            "args": ["check-gap","-f", "-m", "BurstE128", "sample-data/burst_data20230112-11h23.csv"]
         }
     ]
 }
