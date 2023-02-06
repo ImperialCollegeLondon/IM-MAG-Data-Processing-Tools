@@ -9,7 +9,7 @@ See `install.sh`.
 - Download the wheel/tar from the GitHub Actions build artifacts
 - Install pipx (not required but this ensures the tool is installed in it's own environment and dependencies cannot make a mess of your system)
 - [install it with pipx](https://pypa.github.io/pipx/docs/#pipx-install) or with pip if you must.
-- Run `mag hello world` on the command line to check it installed ok
+- Run `mag --help` or `mag countdown` on the command line to check it installed ok
 
 ## Developer Quick start
 
