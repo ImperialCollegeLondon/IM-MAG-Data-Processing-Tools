@@ -1,0 +1,3 @@
+sequence,x_pri,y_pri,z_pri,rng_pri,x_sec,y_sec,z_sec,rng_sec,pri_coarse,pri_fine,sec_coarse,sec_fine
+1,0,0,0,3,0,0,0,3,411249415,36195,411249415,36195
+2,7889,1675,5812,3,6180,609,4415,3,411249417,36193,411249417,36193

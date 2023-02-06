@@ -96,6 +96,8 @@ def main(
             "secondary",
         )
 
+        verify_non_zero_vectors(row, line_count, sequence)
+
         line_count += 1
         prev_seq = sequence
 
@@ -205,6 +207,20 @@ def verify_timestamp(
 
 
 verify_timestamp.prev_time: dict = {"primary": float(0), "secondary": float(0)}
+
+
+def verify_non_zero_vectors(row: dict[str, str], line_count: int, sequence: int):
+    line_id = f"line number { line_count+2 }, sequence count: { sequence }"
+    x_pri = int(row["x_pri"])
+    y_pri = int(row["y_pri"])
+    z_pri = int(row["z_pri"])
+    x_sec = int(row["x_sec"])
+    y_sec = int(row["y_sec"])
+    z_sec = int(row["z_sec"])
+
+    if x_pri == 0 and y_pri == 0 and z_pri == 0 \
+       and x_sec == 0 and y_sec == 0 and z_sec == 0:
+        write_error(f"Vectors are all zero. {line_id}")
 
 
 def write_line(message: str):

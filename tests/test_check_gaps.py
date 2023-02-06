@@ -122,6 +122,14 @@ def test_check_gap_finds_invalid_if_course_time_is_under_threshold_in_secondary_
 def test_check_gap_ignores_wrapping_sequence_counter():
 
     result = runner.invoke(
-        app, ["check-gap", "sample-data/example-seq-count-wraps.csv"])
+        app, ["check-gap", "--mode", "normalE8", "sample-data/example-seq-count-wraps.csv"])
 
     assert "Non sequential packet detected" not in result.stdout
+
+
+def test_check_gap_identifies_all_zero_vectors():
+
+    result = runner.invoke(
+        app, ["check-gap", "--mode", "normalE8", "sample-data/example-all-vectors-are-zero.csv",])
+    assert "Vectors are all zero. line number 2, sequence count: 1" in result.stdout
+    assert result.exit_code == 2
