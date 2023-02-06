@@ -1,10 +1,10 @@
-# The mag command line tool - IMAP Data Processing Tools
+# The `mag` command line - IMAP Data Processing Tools
 
 A collection of tools to process IMAP Magnetometer science data, which are 3 dimensional vectors saved in CSV files. Written in python.
 
 ## Commands examples
 
-- `mag countdown` - How long untill IMAP launh?
+- `mag countdown` - How long untill IMAP launch?
 - `mag check-gap --mode normalE8 folder/burst_data20230112-11h23-bad-time-fine.csv` - list all gaps in timestamps and sequence counters in science data csv file
 
 ## How to install and use
