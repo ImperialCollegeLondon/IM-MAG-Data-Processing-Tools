@@ -11,14 +11,19 @@ See `install.sh`.
 - [install it with pipx](https://pypa.github.io/pipx/docs/#pipx-install) or with pip if you must.
 - Run `mag --help` or `mag countdown` on the command line to check it installed ok
 
+### Command examples
+
+- `mag countdown` - How long untill IMAP launh?
+- `mag check-gap --mode normalE8 folder/burst_data20230112-11h23-bad-time-fine.csv` - list all gaps in timestamps and sequence counters in science data csv file
+
 ## Developer Quick start
 
 - install vs code and docker (tested on windows with WSL2 and docker desktop)
 - clone the repository
 - open the repo in vscode and switch to the dev container (CTRL-P -> Reopen in dev container)
 - open a terminal and run `poetry install` to restore dependencies
-- run the code within poetry in a virtual environment: `poetry run mag hello bob`
-- or run the code with python3 in a virtual environment: `poetry shell` and `poetry install` to setup env and then `python3 src/main.py hello alice` or even just `mag hello charlie` works because the command is actually installed in the virtual env.
+- run the code within poetry in a virtual environment: `poetry run mag --help`
+- or run the code with python3 in a virtual environment: `poetry shell` and `poetry install` to setup env and then `python3 src/main.py countdown`. Just calling `mag countdown` also works because the command is actually installed in the virtual env.
 - One click to run the tests and generate coverage: `./build.sh`
 - One click to package the app into the /dist folder: `./pack.sh`
 - One click to run the tests and package the app across multiple versions of python 3.9, 3.10, 3.11 etc: `./build-all.sh`
@@ -71,12 +76,12 @@ From within the devcontainer (or after you have installed poetry) you can run th
 ./build.sh
 ```
 
-You can also run tests using the test toolling in vscode or the pytest cli:
+You can also run tests using the test tooling "Test Explorer" in VSCode, or by calling the pytest cli:
 
 ```
 $ pytest
 
-# or a subset of tests
+# or run a subset of tests
 $ pytest tests/test_main.py
 $ pytest -k hello
 ```
@@ -87,9 +92,9 @@ To build for all the versions of python you can run
 ./build-all.sh
 ```
 
-Test reports appear automatically in the github actions report
+Test reports appear automatically in the github actions report.
 
-Code coverage data is generated on build into the folder `htmlcov` and is uploaded on every Actions build
+Code coverage data is generated on build into the folder `htmlcov` and is uploaded on every Actions build.
 
 
 ## Access different versions of python using pyenv
@@ -132,12 +137,12 @@ All these tools are preinstalled in the dev container:
 
 ## About the developer environment
 
-This repository uses an opinionated setup for a python command line app. It uses modern python tooling to make dev easier. it will
+This repository uses an opinionated setup for a python command line app. It uses modern python tooling to make dev easier. It will
 
 - configures the VS Code IDE for east python3 based development, including testing and linting
 - use a docker based development environment with vscode devcontainer
 - do package management and python version tooling using Poetry and pyenv
-- continuous integration using GitHub including unit tests and code coverage
+- continuous integration using GitHub Actions, including ruynning unit tests, calculating code coverage and building tarballs and wheel files for you.
 
 ## Continuous Integration with GitHub Actions
 
