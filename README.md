@@ -7,18 +7,29 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 - `mag countdown` - How long untill IMAP launch?
 - `mag check-gap --mode normalE8 folder/burst_data20230112-11h23-bad-time-fine.csv` - list all gaps in timestamps and sequence counters in science data csv file
 
-## How to install and use
-
-See `install.sh`.
+## Mag cli `USERS` Quick Start
 
 - Download the wheel/tar from the GitHub Actions build artifacts
+- Make sure you have the correct version of python installed (probably python3.10). If not use pyenv (see install pyenv section below).
 - Install pipx (not required but this ensures the tool is installed in it's own environment and dependencies cannot make a mess of your system)
-- [install it with pipx](https://pypa.github.io/pipx/docs/#pipx-install) or with pip if you must.
-- Run `mag --help` or `mag countdown` on the command line to check it installed ok
+    ```bash
+    python3 -m pip install --user pipx
+    ```
+- [install mag with pipx](https://pypa.github.io/pipx/docs/#pipx-install) or with pip if you must.
+    ```bash
+    pipx install --python python3.10 mag-*.tar.gz
+    ```
+- Run mag commands on the command line to check it installed ok
+    ```bash
+    mag countdown
+    mag --help
+    ```
 
-## Developer Quick start
+See `install.sh` for a script that does some of this for you if you set some environment variables.
 
-- install vs code and docker (tested on windows with WSL2 and docker desktop)
+## Mag cli `DEVELOPERS` Quick Start
+
+- install vscode and docker (tested on windows with WSL2 and docker desktop)
 - clone the repository
 - open the repo in vscode and switch to the dev container (CTRL-P -> Reopen in dev container)
 - open a terminal and run `poetry install` to restore dependencies
@@ -28,7 +39,7 @@ See `install.sh`.
 - One click to package the app into the /dist folder: `./pack.sh`
 - One click to run the tests and package the app across multiple versions of python 3.9, 3.10, 3.11 etc: `./build-all.sh`
 
-## Setup
+## Dev Env Setup In Depth
 
 Open folder in VS Code with Dev Containers.
 

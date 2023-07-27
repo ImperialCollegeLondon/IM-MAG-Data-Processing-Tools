@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         #python-versions: ['3.7', '3.8', '3.9', '3.10']
-        python-versions: ['3.9', '3.10']
+        python-versions: ['3.9', '3.10', '3.11']
         os: [ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     # map step outputs to job outputs so they can be share among jobs
@@ -62,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: matrix.python-versions == '3.10'
         with:
-          name: ${{ env.PACKAGE_NAME }}-${{ env.PACKAGE_VERSION }}
+          name: ${{ env.PACKAGE_NAME }}-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}
           path: dist/*.tar.gz
           if-no-files-found: error
 
@@ -70,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: matrix.python-versions == '3.10'
         with:
-          name: Coverage
+          name: Coverage-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}
           path: htmlcov
           if-no-files-found: error
 
