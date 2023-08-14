@@ -218,8 +218,14 @@ def verify_non_zero_vectors(row: dict[str, str], line_count: int, sequence: int)
     y_sec = int(row["y_sec"])
     z_sec = int(row["z_sec"])
 
-    if x_pri == 0 and y_pri == 0 and z_pri == 0 \
-       and x_sec == 0 and y_sec == 0 and z_sec == 0:
+    if (
+        x_pri == 0
+        and y_pri == 0
+        and z_pri == 0
+        and x_sec == 0
+        and y_sec == 0
+        and z_sec == 0
+    ):
         write_error(f"Vectors are all zero. {line_id}")
 
 
