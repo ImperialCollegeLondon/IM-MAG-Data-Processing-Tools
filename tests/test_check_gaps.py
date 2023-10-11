@@ -88,7 +88,7 @@ def test_check_gap_has_no_errors_for_valid_burst_data():
         app, ["check-gap", "sample-data/burst_data20230112-11h23.csv"])
 
     assert result.exit_code == 0
-    assert "Gap checker complete successfully. Checked 1 packet(s) across 513 lines." in result.stdout
+    assert "Gap checker completed successfully. Checked 2 packet(s) across 512 rows of data." in result.stdout
 
 
 def test_check_gap_finds_invalid_if_in_wrong_mode():
@@ -97,7 +97,7 @@ def test_check_gap_finds_invalid_if_in_wrong_mode():
         app, ["check-gap", "--mode", "normalE8", "sample-data/burst_data20230112-11h23.csv"])
 
     assert "Expected 32 vectors in packet but found 256" in result.stdout
-    assert "Error - found bad science data! Checked 1 packet" in result.stdout
+    assert "Error - found bad science data! Checked 2 packet" in result.stdout
     assert result.exit_code == 2
 
 
@@ -133,3 +133,22 @@ def test_check_gap_identifies_all_zero_vectors():
         app, ["check-gap", "--mode", "normalE8", "sample-data/example-all-vectors-are-zero.csv",])
     assert "Vectors are all zero. line number 2, sequence count: 1" in result.stdout
     assert result.exit_code == 2
+
+
+def test_check_gap_has_no_errors_for_valid_normal_data_in_filename_mode():
+
+    result = runner.invoke(
+        app, ["check-gap", "sample-data/MAGScience-normal-(2,2)-8s-20230922-11h50.csv"])
+
+    assert result.exit_code == 0
+    assert "Gap checker completed successfully. Checked 1 packet(s) across 16 rows of data." in result.stdout
+
+
+def test_check_gap_has_no_errors_for_valid_normal_data_at_1s_in_filename_mode():
+
+    result = runner.invoke(
+        app, ["check-gap", "sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50.csv"])
+
+    print(result.stdout)
+    assert result.exit_code == 0
+    assert "Gap checker completed successfully. Checked 2 packet(s) across 4 rows of data." in result.stdout

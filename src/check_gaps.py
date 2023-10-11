@@ -3,10 +3,11 @@ import os
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Optional
+import re
 
 import typer
 
-from science_mode import Mode, ModeConfig
+from science_mode import Constants, Mode, ModeConfig
 
 app = typer.Typer()
 
@@ -50,14 +51,19 @@ def main(
 
     report_file = open(report_file_path, "a")
     reader = csv.DictReader(data_file)
-    mode_config = ModeConfig(mode)
+
+    if mode != Mode.unknown:
+        mode_config = ModeConfig(mode)
+    else:
+        mode_config = ModeConfig(data_file.name)
+
     exit_code = 0
     line_count = 0
     packet_line_count = 0
     packet_counter = 0
     prev_seq = -1
 
-    write_line(f"Checking {data_file.name} in mode {mode.value}")
+    write_line(f"Checking {data_file.name} in mode {mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s)")
 
     for row in reader:
         sequence = int(row["sequence"])
@@ -67,6 +73,10 @@ def main(
         sec_fine = int(row["sec_fine"])
 
         packet_line_count += 1
+
+        if line_count == 0 and packet_counter == 0:
+            # we have our first packet
+            packet_counter += 1
 
         # if the seq count has moved we assume this is the start of a new packet
         if line_count > 0 and sequence != prev_seq:
@@ -103,11 +113,11 @@ def main(
 
     if exit_code != 0:
         write_line(
-            f"Error - found bad science data! Checked {packet_counter} packet(s) across {line_count+1} lines."
+            f"Error - found bad science data! Checked {packet_counter} packet(s) across {line_count} rows of data."
         )
     else:
         write_line(
-            f"Gap checker complete successfully. Checked {packet_counter} packet(s) across {line_count+1} lines."
+            f"Gap checker completed successfully. Checked {packet_counter} packet(s) across {line_count} rows of data."
         )
 
     report_file.close()
@@ -123,16 +133,27 @@ def validate_check_gap_args(data_file, report_file_path, mode, force):
             print(f"{report_file_path} already exists - delete file or use --force")
             raise typer.Abort()
 
-    if "burst" in data_file.name and mode == Mode.unknown:
-        mode = Mode.burst128
-    elif "normal" in data_file.name and mode == Mode.unknown:
-        mode = Mode.normal
-
-    if mode == Mode.unknown:
+    if not data_file.name:
         print(
-            "unable to determine the mode - specify --mode NormalE8, --mode BurstE64. See --help for more info."
+            "data_file name is empty or invalid"
         )
         raise typer.Abort()
+
+    match = Constants.magScienceFileNamev2Regex.search(data_file.name)
+
+    # files in v1 format will not match the regex so gues mode from file name
+    if not match and mode == Mode.unknown:
+        if "burst" in data_file.name:
+            mode = Mode.burst128
+        elif "normal" in data_file.name:
+            mode = Mode.normalE8
+
+        if mode == Mode.unknown:
+            print(
+                "unable to determine the mode - specify --mode NormalE8, --mode BurstE64. See --help for more info."
+            )
+            raise typer.Abort()
+
     return mode
 
 
@@ -144,9 +165,9 @@ def verify_sequence_counter(
 
         if sequence != prev_seq:
             # are we changing between packets after an unexpected number of vectors?
-            if packet_line_count != mode_config.vectors_per_packet + 1:
+            if packet_line_count != mode_config.rows_per_packet + 1:
                 write_error(
-                    f"Expected {mode_config.vectors_per_packet} vectors in packet but found {packet_line_count-1}. {line_id}"
+                    f"Expected {mode_config.rows_per_packet} vectors in packet but found {packet_line_count-1}. {line_id}"
                 )
 
             # start of a new packet
