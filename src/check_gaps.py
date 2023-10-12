@@ -161,7 +161,7 @@ def verify_sequence_counter(
     mode_config, line_count, packet_line_count, prev_seq, sequence
 ):
     if line_count > 0:
-        line_id = f"line number {line_count+2}, sequence count: {sequence}, vector number {packet_line_count}"
+        line_id = f"line number {line_count + 2}, sequence count: {sequence}, vector number {packet_line_count}"
 
         if sequence != prev_seq:
             # are we changing between packets after an unexpected number of vectors?
