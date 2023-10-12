@@ -161,18 +161,18 @@ def verify_sequence_counter(
     mode_config, line_count, packet_line_count, prev_seq, sequence
 ):
     if line_count > 0:
-        line_id = f"line number { line_count+2 }, sequence count: { sequence }, vector number {packet_line_count}"
+        line_id = f"line number {line_count+2}, sequence count: {sequence}, vector number {packet_line_count}"
 
         if sequence != prev_seq:
             # are we changing between packets after an unexpected number of vectors?
             if packet_line_count != mode_config.rows_per_packet + 1:
                 write_error(
-                    f"Expected {mode_config.rows_per_packet} vectors in packet but found {packet_line_count-1}. {line_id}"
+                    f"Expected {mode_config.rows_per_packet} vectors in packet but found {packet_line_count - 1}. {line_id}"
                 )
 
             # start of a new packet
             packet_line_count = 1
-            line_id = f"line number { line_count+2 }, sequence count: { sequence }, vector number {packet_line_count}"
+            line_id = f"line number {line_count + 2}, sequence count: {sequence}, vector number {packet_line_count}"
 
         # check that the seqence numbers are the same within the packet
         if packet_line_count > 1 and sequence != prev_seq:
@@ -194,14 +194,13 @@ def verify_timestamp(
     fine: int,
     timestamp_type: str,
 ):
-    line_id = f"line number { line_count+2 }, sequence count: { sequence }"
+    line_id = f"line number {line_count + 2}, sequence count: {sequence}"
 
     prev_time = verify_timestamp.prev_time[timestamp_type]
     time: float = float(coarse) + (float(fine) / float(MAX_FINE))
     gap_between_packets = time - prev_time
 
     if line_count > 0 and packet_line_count == 1:
-
         lower_limit = (
             mode_config.seconds_between_packets - TIME_TOLERANCE_BETWEEN_PACKETS
         )
@@ -231,7 +230,7 @@ verify_timestamp.prev_time: dict = {"primary": float(0), "secondary": float(0)}
 
 
 def verify_non_zero_vectors(row: dict[str, str], line_count: int, sequence: int):
-    line_id = f"line number { line_count+2 }, sequence count: { sequence }"
+    line_id = f"line number {line_count + 2}, sequence count: {sequence}"
     x_pri = int(row["x_pri"])
     y_pri = int(row["y_pri"])
     z_pri = int(row["z_pri"])

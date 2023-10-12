@@ -13,7 +13,7 @@ app.add_typer(check_gaps.app, name="check-gap")
 
 @app.command()
 def countdown():
-    print(f"IMAP launch is { get_relative_time(datetime.datetime(2025, 2, 25))}")
+    print(f"IMAP launch is {get_relative_time(datetime.datetime(2025, 2, 25))}")
 
 
 SECOND = 1
