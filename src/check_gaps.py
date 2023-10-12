@@ -1,9 +1,9 @@
 import csv
 import os
+import re
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Optional
-import re
 
 import typer
 
@@ -31,7 +31,7 @@ def main(
         help="Path to a file to save a summary of the analysis performed",
     ),
     mode: Mode = typer.Option(
-        Mode.unknown,
+        Mode.auto,
         "--mode",
         "-m",
         case_sensitive=False,
@@ -52,7 +52,7 @@ def main(
     report_file = open(report_file_path, "a")
     reader = csv.DictReader(data_file)
 
-    if mode != Mode.unknown:
+    if mode != Mode.auto:
         mode_config = ModeConfig(mode)
     else:
         mode_config = ModeConfig(data_file.name)
@@ -63,7 +63,9 @@ def main(
     packet_counter = 0
     prev_seq = -1
 
-    write_line(f"Checking {data_file.name} in mode {mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s)")
+    write_line(
+        f"Checking {data_file.name} in mode {mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s)"
+    )
 
     for row in reader:
         sequence = int(row["sequence"])
@@ -134,21 +136,19 @@ def validate_check_gap_args(data_file, report_file_path, mode, force):
             raise typer.Abort()
 
     if not data_file.name:
-        print(
-            "data_file name is empty or invalid"
-        )
+        print("data_file name is empty or invalid")
         raise typer.Abort()
 
     match = Constants.magScienceFileNamev2Regex.search(data_file.name)
 
     # files in v1 format will not match the regex so gues mode from file name
-    if not match and mode == Mode.unknown:
+    if not match and mode == Mode.auto:
         if "burst" in data_file.name:
             mode = Mode.burst128
         elif "normal" in data_file.name:
             mode = Mode.normalE8
 
-        if mode == Mode.unknown:
+        if mode == Mode.auto:
             print(
                 "unable to determine the mode - specify --mode NormalE8, --mode BurstE64. See --help for more info."
             )

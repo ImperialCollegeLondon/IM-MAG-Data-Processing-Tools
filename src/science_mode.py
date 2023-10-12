@@ -1,9 +1,14 @@
-from enum import Enum
+from __future__ import annotations
+
 import re
+from enum import Enum
 
 
 class Constants:
-    magScienceFileNamev2Regex = re.compile(r"MAG\w+-(\w+)-\(([0-9]+),([0-9]+)\)-([0-9]+)s-\w+-\w+", re.IGNORECASE | re.MULTILINE)
+    magScienceFileNamev2Regex = re.compile(
+        r"MAG\w+-(\w+)-\(([0-9]+),([0-9]+)\)-([0-9]+)s-\w+-\w+",
+        re.IGNORECASE | re.MULTILINE,
+    )
 
 
 class Mode(str, Enum):
@@ -11,7 +16,7 @@ class Mode(str, Enum):
     normalE2 = "NormalE2"
     burst128 = "BurstE128"
     burst64 = "BurstE64"
-    unknown = "?"
+    auto = "auto"
 
 
 class ModeConfig:
@@ -51,4 +56,6 @@ class ModeConfig:
             self.secondary_rate = int(match.group(3))
             self.seconds_between_packets = int(match.group(4))
 
-        self.rows_per_packet = max(self.primary_rate, self.secondary_rate) * self.seconds_between_packets
+        self.rows_per_packet = (
+            max(self.primary_rate, self.secondary_rate) * self.seconds_between_packets
+        )

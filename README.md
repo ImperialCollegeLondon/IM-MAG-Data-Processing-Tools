@@ -5,7 +5,8 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 ## Commands examples
 
 - `mag countdown` - How long untill IMAP launch?
-- `mag check-gap --mode normalE8 folder/burst_data20230112-11h23-bad-time-fine.csv` - list all gaps in timestamps and sequence counters in science data csv file
+- `mag check-gap sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50.csv` - list all gaps in timestamps and sequence counters in science data csv file
+- `mag check-gap --mode normalE8 folder/burst_data20230112-11h23-bad-time-fine.csv` - list all gaps in timestamps and sequence counters in science data csv file and forces the mode to be normalE8
 
 ## Mag cli `USERS` Quick Start
 
