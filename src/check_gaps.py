@@ -68,13 +68,9 @@ def main(
     )
 
     for row in reader:
-        sequence = int(row["sequence"])
-        pri_coarse = int(row["pri_coarse"])
-        pri_fine = int(row["pri_fine"])
-        sec_coarse = int(row["sec_coarse"])
-        sec_fine = int(row["sec_fine"])
-
         packet_line_count += 1
+
+        sequence = get_integer(packet_line_count, row, "sequence")
 
         if line_count == 0 and packet_counter == 0:
             # we have our first packet
@@ -88,27 +84,38 @@ def main(
             mode_config, line_count, packet_line_count, prev_seq, sequence
         )
 
-        verify_timestamp(
-            mode_config,
-            line_count,
-            packet_line_count,
-            sequence,
-            pri_coarse,
-            pri_fine,
-            "primary",
-        )
+        hasPrimary = packet_line_count <= mode_config.primary_rate
+        hasSeconday = packet_line_count <= mode_config.secondary_rate
 
-        verify_timestamp(
-            mode_config,
-            line_count,
-            packet_line_count,
-            sequence,
-            sec_coarse,
-            sec_fine,
-            "secondary",
-        )
+        if hasPrimary:
+            pri_coarse = get_integer(packet_line_count, row, "pri_coarse")
+            pri_fine = get_integer(packet_line_count, row, "pri_fine")
 
-        verify_non_zero_vectors(row, line_count, sequence)
+            verify_timestamp(
+                mode_config,
+                line_count,
+                packet_line_count,
+                sequence,
+                pri_coarse,
+                pri_fine,
+                "primary",
+            )
+            verify_non_zero_vectors(row, line_count, sequence, "primary")
+
+        if hasSeconday:
+            sec_coarse = get_integer(packet_line_count, row, "sec_coarse")
+            sec_fine = get_integer(packet_line_count, row, "sec_fine")
+
+            verify_timestamp(
+                mode_config,
+                line_count,
+                packet_line_count,
+                sequence,
+                sec_coarse,
+                sec_fine,
+                "secondary",
+            )
+            verify_non_zero_vectors(row, line_count, sequence, "secondary")
 
         line_count += 1
         prev_seq = sequence
@@ -127,6 +134,18 @@ def main(
         raise typer.Exit(code=exit_code)
 
 
+def get_integer(packet_line_count, row, field):
+    value = row[field]
+    if not (value.strip("-").isnumeric()):
+        write_error(
+            f"Expected row {packet_line_count} to have a numeric {field}, found '{value}'"
+        )
+        value = 0
+    else:
+        value = int(value)
+    return value
+
+
 def validate_check_gap_args(data_file, report_file_path, mode, force):
     if report_file_path.exists():
         if force:
@@ -141,7 +160,7 @@ def validate_check_gap_args(data_file, report_file_path, mode, force):
 
     match = Constants.magScienceFileNamev2Regex.search(data_file.name)
 
-    # files in v1 format will not match the regex so gues mode from file name
+    # files in v1 format will not match the regex so guess mode from file name
     if not match and mode == Mode.auto:
         if "burst" in data_file.name:
             mode = Mode.burst128
@@ -229,24 +248,20 @@ def verify_timestamp(
 verify_timestamp.prev_time: dict = {"primary": float(0), "secondary": float(0)}
 
 
-def verify_non_zero_vectors(row: dict[str, str], line_count: int, sequence: int):
+def verify_non_zero_vectors(
+    row: dict[str, str], line_count: int, sequence: int, primary_or_secondary: str
+):
     line_id = f"line number {line_count + 2}, sequence count: {sequence}"
-    x_pri = int(row["x_pri"])
-    y_pri = int(row["y_pri"])
-    z_pri = int(row["z_pri"])
-    x_sec = int(row["x_sec"])
-    y_sec = int(row["y_sec"])
-    z_sec = int(row["z_sec"])
 
-    if (
-        x_pri == 0
-        and y_pri == 0
-        and z_pri == 0
-        and x_sec == 0
-        and y_sec == 0
-        and z_sec == 0
-    ):
-        write_error(f"Vectors are all zero. {line_id}")
+    # take the first 3 chars
+    pri_or_sec = primary_or_secondary[0:3]
+
+    x = get_integer(line_count, row, f"x_{pri_or_sec}")
+    y = get_integer(line_count, row, f"y_{pri_or_sec}")
+    z = get_integer(line_count, row, f"z_{pri_or_sec}")
+
+    if x == 0 and y == 0 and z == 0:
+        write_error(f"Vectors are all zero for {primary_or_secondary} on {line_id}")
 
 
 def write_line(message: str):

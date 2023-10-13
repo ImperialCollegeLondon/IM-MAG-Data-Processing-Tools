@@ -39,24 +39,21 @@
                 //"python.defaultInterpreterPath": "/usr/local/bin/python"
 
                 // use the active venv
-                "python.defaultInterpreterPath": ".venv/bin/python3"
-			}
+                "python.defaultInterpreterPath": ".venv/bin/python3",
+
+				"terminal.integrated.defaultProfile.linux": "zsh",
+				"terminal.integrated.profiles.linux": {
+					"zsh": {
+						"path": "/bin/zsh"
+					}
+				}
+			},
+			"extensions": [
+				"EditorConfig.EditorConfig",
+				"ms-python.python",
+				"ms-python.flake8"
+			]
 		}
-	},
-
-    "extensions": [
-        "EditorConfig.EditorConfig",
-        "ms-python.python"
-    ],
-
-    // change to zsh default shell
-	"settings": {
-		"terminal.integrated.defaultProfile.linux": "zsh",
-        "terminal.integrated.profiles.linux": {
-            "zsh": {
-                "path": "/bin/zsh"
-            }
-        }
 	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
