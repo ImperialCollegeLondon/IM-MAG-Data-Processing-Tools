@@ -281,7 +281,7 @@ def test_check_gap_finds_finds_incomplete_packets_in_both_sensors_for_normal_dat
     print(result.stdout)
     assert result.exit_code != 0
     assert (
-        "Packet is incomplete, found 7 primary and 3 secondary vectors, expected 8 and 4. line number 2, sequence count: 0"
+        "A packet is incomplete, found 7 primary and 3 secondary vectors, expected 8 and 4. line number 2, sequence count: 0"
         in result.stdout
     )
     assert result.exit_code == 2
@@ -299,7 +299,7 @@ def test_check_gap_finds_finds_incomplete_last_packet_in_both_sensors_for_normal
     print(result.stdout)
     assert result.exit_code != 0
     assert (
-        "Packet is incomplete, found 7 primary and 3 secondary vectors, expected 8 and 4. line number 10, sequence count: 1"
+        "The last packet is incomplete, found 7 primary and 3 secondary vectors, expected 8 and 4. line number 10, sequence count: 1"
         in result.stdout
     )
     assert result.exit_code == 2

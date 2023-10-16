@@ -90,6 +90,7 @@ def main(
                 mode_config,
                 prev_seq,
                 packet_start_line_count,
+                False,
             )
             packet_counter += 1
             packet_start_line_count = line_count
@@ -154,6 +155,7 @@ def main(
         mode_config,
         prev_seq,
         packet_start_line_count,
+        True,
     )
 
     if exit_code != 0:
@@ -330,20 +332,22 @@ def verify_packet_completeness(
     mode_config: ModeConfig,
     prev_seq: int,
     packet_start_line_count: int,
+    is_last_packet: bool,
 ):
+    packet_name = "The last packet" if is_last_packet else "A packet"
     if (
         primary_vector_count < mode_config.primary_vectors_per_packet
         or secondary_vector_count < mode_config.secondary_vectors_per_packet
     ):
         write_error(
-            f"Packet is incomplete, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
+            f"{packet_name} is incomplete, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
         )
     if (
         primary_vector_count > mode_config.primary_vectors_per_packet
         or secondary_vector_count > mode_config.secondary_vectors_per_packet
     ):
         write_error(
-            f"Packet is too big, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
+            f"{packet_name} is too big, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
         )
 
 
