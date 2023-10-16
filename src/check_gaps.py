@@ -59,66 +59,102 @@ def main(
 
     exit_code = 0
     line_count = 0
+    packet_start_line_count = 0
     packet_line_count = 0
     packet_counter = 0
     prev_seq = -1
+    primary_vector_count = 0
+    secondary_vector_count = 0
 
     write_line(
-        f"Checking {data_file.name} in mode {mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s)"
+        f"Checking {data_file.name} in mode {mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s"
     )
 
     for row in reader:
         packet_line_count += 1
+        line_count += 1
 
-        sequence = get_integer(packet_line_count, row, "sequence")
+        sequence = get_integer(line_count, row, "sequence")
 
-        if line_count == 0 and packet_counter == 0:
+        if line_count == 1 and packet_counter == 0:
             # we have our first packet
             packet_counter += 1
+            packet_start_line_count += 1
 
         # if the seq count has moved we assume this is the start of a new packet
-        if line_count > 0 and sequence != prev_seq:
+        if line_count > 1 and sequence != prev_seq:
+            # check the previous packet has a complete set of vectors
+            verify_packet_completeness(
+                primary_vector_count,
+                secondary_vector_count,
+                mode_config,
+                prev_seq,
+                packet_start_line_count,
+            )
             packet_counter += 1
+            packet_start_line_count = line_count
+            primary_vector_count = 0
+            secondary_vector_count = 0
 
         packet_line_count = verify_sequence_counter(
             mode_config, line_count, packet_line_count, prev_seq, sequence
         )
 
-        hasPrimary = packet_line_count <= mode_config.primary_rate
-        hasSeconday = packet_line_count <= mode_config.secondary_rate
+        hasPrimary = packet_line_count <= mode_config.primary_vectors_per_packet
+        hasSeconday = packet_line_count <= mode_config.secondary_vectors_per_packet
 
-        if hasPrimary:
-            pri_coarse = get_integer(packet_line_count, row, "pri_coarse")
-            pri_fine = get_integer(packet_line_count, row, "pri_fine")
+        if packet_line_count > mode_config.rows_per_packet:
+            if packet_line_count == mode_config.rows_per_packet + 1:
+                write_error(
+                    f"Packet has too many rows. Expected {mode_config.rows_per_packet}. line number {line_count + 1}, sequence count: {sequence}"
+                )
+        else:
+            if hasPrimary:
+                pri_coarse = get_integer(line_count, row, "pri_coarse")
+                pri_fine = get_integer(line_count, row, "pri_fine")
 
-            verify_timestamp(
-                mode_config,
-                line_count,
-                packet_line_count,
-                sequence,
-                pri_coarse,
-                pri_fine,
-                "primary",
-            )
-            verify_non_zero_vectors(row, line_count, sequence, "primary")
+                verify_timestamp(
+                    mode_config,
+                    line_count,
+                    packet_line_count,
+                    sequence,
+                    pri_coarse,
+                    pri_fine,
+                    "primary",
+                )
+                if verify_non_zero_vectors(row, line_count, sequence, "primary"):
+                    primary_vector_count += 1
+            else:
+                verify_empty_vectors(row, line_count, sequence, "primary")
 
-        if hasSeconday:
-            sec_coarse = get_integer(packet_line_count, row, "sec_coarse")
-            sec_fine = get_integer(packet_line_count, row, "sec_fine")
+            if hasSeconday:
+                sec_coarse = get_integer(line_count, row, "sec_coarse")
+                sec_fine = get_integer(line_count, row, "sec_fine")
 
-            verify_timestamp(
-                mode_config,
-                line_count,
-                packet_line_count,
-                sequence,
-                sec_coarse,
-                sec_fine,
-                "secondary",
-            )
-            verify_non_zero_vectors(row, line_count, sequence, "secondary")
+                verify_timestamp(
+                    mode_config,
+                    line_count,
+                    packet_line_count,
+                    sequence,
+                    sec_coarse,
+                    sec_fine,
+                    "secondary",
+                )
+                if verify_non_zero_vectors(row, line_count, sequence, "secondary"):
+                    secondary_vector_count += 1
+            else:
+                verify_empty_vectors(row, line_count, sequence, "secondary")
 
-        line_count += 1
         prev_seq = sequence
+
+    # check the last packet has a complete set of vectors
+    verify_packet_completeness(
+        primary_vector_count,
+        secondary_vector_count,
+        mode_config,
+        prev_seq,
+        packet_start_line_count,
+    )
 
     if exit_code != 0:
         write_line(
@@ -134,11 +170,11 @@ def main(
         raise typer.Exit(code=exit_code)
 
 
-def get_integer(packet_line_count, row, field):
+def get_integer(line_count, row, field):
     value = row[field]
     if not (value.strip("-").isnumeric()):
         write_error(
-            f"Expected row {packet_line_count} to have a numeric {field}, found '{value}'"
+            f"Expected line {line_count + 1} to have a numeric {field}, found '{value}'"
         )
         value = 0
     else:
@@ -179,19 +215,13 @@ def validate_check_gap_args(data_file, report_file_path, mode, force):
 def verify_sequence_counter(
     mode_config, line_count, packet_line_count, prev_seq, sequence
 ):
-    if line_count > 0:
-        line_id = f"line number {line_count + 2}, sequence count: {sequence}, vector number {packet_line_count}"
+    if line_count > 1:
+        line_id = f"line number {line_count + 1}, sequence count: {sequence}, vector number {packet_line_count}"
 
         if sequence != prev_seq:
-            # are we changing between packets after an unexpected number of vectors?
-            if packet_line_count != mode_config.rows_per_packet + 1:
-                write_error(
-                    f"Expected {mode_config.rows_per_packet} vectors in packet but found {packet_line_count - 1}. {line_id}"
-                )
-
             # start of a new packet
             packet_line_count = 1
-            line_id = f"line number {line_count + 2}, sequence count: {sequence}, vector number {packet_line_count}"
+            line_id = f"line number {line_count + 1}, sequence count: {sequence}, vector number {packet_line_count}"
 
         # check that the seqence numbers are the same within the packet
         if packet_line_count > 1 and sequence != prev_seq:
@@ -213,13 +243,13 @@ def verify_timestamp(
     fine: int,
     timestamp_type: str,
 ):
-    line_id = f"line number {line_count + 2}, sequence count: {sequence}"
+    line_id = f"line number {line_count + 1}, sequence count: {sequence}"
 
     prev_time = verify_timestamp.prev_time[timestamp_type]
     time: float = float(coarse) + (float(fine) / float(MAX_FINE))
     gap_between_packets = time - prev_time
 
-    if line_count > 0 and packet_line_count == 1:
+    if line_count > 1 and packet_line_count == 1:
         lower_limit = (
             mode_config.seconds_between_packets - TIME_TOLERANCE_BETWEEN_PACKETS
         )
@@ -250,8 +280,8 @@ verify_timestamp.prev_time: dict = {"primary": float(0), "secondary": float(0)}
 
 def verify_non_zero_vectors(
     row: dict[str, str], line_count: int, sequence: int, primary_or_secondary: str
-):
-    line_id = f"line number {line_count + 2}, sequence count: {sequence}"
+) -> bool:
+    line_id = f"line number {line_count + 1}, sequence count: {sequence}"
 
     # take the first 3 chars
     pri_or_sec = primary_or_secondary[0:3]
@@ -259,9 +289,62 @@ def verify_non_zero_vectors(
     x = get_integer(line_count, row, f"x_{pri_or_sec}")
     y = get_integer(line_count, row, f"y_{pri_or_sec}")
     z = get_integer(line_count, row, f"z_{pri_or_sec}")
+    r = get_integer(line_count, row, f"rng_{pri_or_sec}")
 
     if x == 0 and y == 0 and z == 0:
         write_error(f"Vectors are all zero for {primary_or_secondary} on {line_id}")
+        return False
+
+    if r < 0 or r > 3:
+        write_error(
+            f"Range value is out of range for {primary_or_secondary} on {line_id}"
+        )
+        return False
+
+    return True
+
+
+def verify_empty_vectors(
+    row: dict[str, str], line_count: int, sequence: int, primary_or_secondary: str
+) -> bool:
+    line_id = f"line number {line_count + 1}, sequence count: {sequence}"
+
+    # take the first 3 chars
+    pri_or_sec = primary_or_secondary[0:3]
+
+    x = row[f"x_{pri_or_sec}"]
+    y = row[f"y_{pri_or_sec}"]
+    z = row[f"z_{pri_or_sec}"]
+    r = row[f"rng_{pri_or_sec}"]
+
+    if x or y or z or r:
+        write_error(f"Vectors are non-empty for {primary_or_secondary} on {line_id}")
+        return False
+
+    return True
+
+
+def verify_packet_completeness(
+    primary_vector_count: int,
+    secondary_vector_count: int,
+    mode_config: ModeConfig,
+    prev_seq: int,
+    packet_start_line_count: int,
+):
+    if (
+        primary_vector_count < mode_config.primary_vectors_per_packet
+        or secondary_vector_count < mode_config.secondary_vectors_per_packet
+    ):
+        write_error(
+            f"Packet is incomplete, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
+        )
+    if (
+        primary_vector_count > mode_config.primary_vectors_per_packet
+        or secondary_vector_count > mode_config.secondary_vectors_per_packet
+    ):
+        write_error(
+            f"Packet is too big, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
+        )
 
 
 def write_line(message: str):

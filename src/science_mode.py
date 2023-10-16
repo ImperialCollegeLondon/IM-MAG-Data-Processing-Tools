@@ -24,10 +24,11 @@ class ModeConfig:
     secondary_rate = 0
     rows_per_packet = 0
     seconds_between_packets = 0
+    primary_vectors_per_packet = 0
+    secondary_vectors_per_packet = 0
 
     def __init__(self, modeOrFileName: Mode | str):
         if isinstance(modeOrFileName, Mode):
-
             if modeOrFileName == Mode.normalE8:
                 self.primary_rate = 8
                 self.secondary_rate = 8
@@ -56,6 +57,12 @@ class ModeConfig:
             self.secondary_rate = int(match.group(3))
             self.seconds_between_packets = int(match.group(4))
 
+        self.primary_vectors_per_packet = (
+            self.primary_rate * self.seconds_between_packets
+        )
+        self.secondary_vectors_per_packet = (
+            self.secondary_rate * self.seconds_between_packets
+        )
         self.rows_per_packet = (
             max(self.primary_rate, self.secondary_rate) * self.seconds_between_packets
         )

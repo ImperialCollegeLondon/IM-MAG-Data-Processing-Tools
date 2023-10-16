@@ -4,6 +4,7 @@
 
 import os
 from pathlib import Path
+
 import pytest
 from typer.testing import CliRunner
 
@@ -29,13 +30,21 @@ def run_around_tests():
 
 def test_check_gap_creates_report():
     result = runner.invoke(app, default_command_params)
+
+    print(result.stdout)
     assert result.exit_code == 0
     assert report_file.exists
 
 
-def test_check_gap_creates_report_with_alternative_arguments():
+def test_check_gap_creates_error_report_when_too_many_row_per_packet():
     result = runner.invoke(app, alt_command_params)
-    assert result.exit_code == 0
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert (
+        "Packet has too many rows. Expected 32. line number 34, sequence count: 0"
+        in result.stdout
+    )
     assert report_file.exists
 
 
@@ -53,9 +62,22 @@ def test_check_gap_will_overwrite_report_when_forced():
     with open(report_file.absolute(), "w"):
         pass
 
-    result = runner.invoke(app, alt_command_params)
+    result = runner.invoke(
+        app, ["check-gap", "-f", "--mode", "BurstE128", "sample-data/example.csv"]
+    )
 
     assert result.exit_code == 0
+    assert report_file.exists
+
+
+def test_check_gap_will_overwrite_error_report_when_forced():
+    with open(report_file.absolute(), "w"):
+        pass
+
+    result = runner.invoke(app, alt_command_params)
+
+    assert result.exit_code != 0
+    assert report_file.exists
 
 
 def test_check_gap_finds_invalid_sequence_counter():
@@ -112,7 +134,7 @@ def test_check_gap_finds_invalid_if_in_wrong_mode():
         ["check-gap", "--mode", "normalE8", "sample-data/burst_data20230112-11h23.csv"],
     )
 
-    assert "Expected 32 vectors in packet but found 256" in result.stdout
+    print(result.stdout)
     assert "Error - found bad science data! Checked 2 packet" in result.stdout
     assert result.exit_code == 2
 
@@ -221,5 +243,85 @@ def test_check_gap_has_no_errors_for_valid_normal_data_with_lower_primary_rate_i
     assert result.exit_code == 0
     assert (
         "Gap checker completed successfully. Checked 2 packet(s) across 4 rows of data."
+        in result.stdout
+    )
+
+
+def test_check_gap_finds_course_time_jump_2s_when_should_be_1s_for_normal_data_with_lower_secondary_rate_in_filename_mode():
+    result = runner.invoke(
+        app,
+        [
+            "check-gap",
+            "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-bad-time-course.csv",
+        ],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert (
+        "primary timestamp is 2.00000s after the previous packets (more than 1.005s). line number 4, sequence count: 1"
+        in result.stdout
+    )
+    assert (
+        "secondary timestamp is 2.00000s after the previous packets (more than 1.005s). line number 4, sequence count: 1"
+        in result.stdout
+    )
+    assert result.exit_code == 2
+
+
+def test_check_gap_finds_finds_incomplete_packets_in_both_sensors_for_normal_data_with_lower_secondary_rate_in_filename_mode():
+    result = runner.invoke(
+        app,
+        [
+            "check-gap",
+            "sample-data/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-packet.csv",
+        ],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert (
+        "Packet is incomplete, found 7 primary and 3 secondary vectors, expected 8 and 4. line number 2, sequence count: 0"
+        in result.stdout
+    )
+    assert result.exit_code == 2
+
+
+def test_check_gap_finds_finds_incomplete_last_packet_in_both_sensors_for_normal_data_with_lower_secondary_rate_in_filename_mode():
+    result = runner.invoke(
+        app,
+        [
+            "check-gap",
+            "sample-data/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-last-packet.csv",
+        ],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert (
+        "Packet is incomplete, found 7 primary and 3 secondary vectors, expected 8 and 4. line number 10, sequence count: 1"
+        in result.stdout
+    )
+    assert result.exit_code == 2
+
+
+def test_check_gap_find_additional_secondary_sensor_data_with_lower_secondary_rate_in_filename_mode():
+    result = runner.invoke(
+        app,
+        [
+            "check-gap",
+            "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-extra-secondary-data.csv",
+        ],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert (
+        "Vectors are non-empty for secondary on line number 5, sequence count: 1"
+        in result.stdout
+    )
+    assert "Checked 2 packet(s) across 4 rows of data" in result.stdout
+    assert (
+        "Checking sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-extra-secondary-data.csv in mode auto (2, 1) @ 1s"
         in result.stdout
     )

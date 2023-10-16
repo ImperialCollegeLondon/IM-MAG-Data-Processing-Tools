@@ -51,7 +51,8 @@
 			"extensions": [
 				"EditorConfig.EditorConfig",
 				"ms-python.python",
-				"ms-python.flake8"
+				"ms-python.flake8",
+                "ms-python.black-formatter"
 			]
 		}
 	},
