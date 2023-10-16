@@ -12,6 +12,7 @@ from science_mode import Constants, Mode, ModeConfig
 app = typer.Typer()
 
 report_file: TextIOWrapper
+no_report_flag = False
 exit_code = 0
 MAX_FINE = 0x00FFFFFF  # max 24bit number, the largest fine time value
 TIME_TOLERANCE_BETWEEN_PACKETS = 0.005
@@ -26,7 +27,7 @@ def main(
         help="file path to the csv file to be scanned e.g burst_data20230112-11h23.csv",
     ),
     report_file_path: Optional[Path] = typer.Option(
-        "gap-report.txt",
+        "",
         "--report",
         help="Path to a file to save a summary of the analysis performed",
     ),
@@ -40,16 +41,27 @@ def main(
     force: bool = typer.Option(
         False, "--force", "-f", help="Allow the overwrite of the report file"
     ),
+    no_report: bool = typer.Option(
+        False, "--no-report", help="Disable the report file"
+    ),
 ):
     """
     Check MAG science CSV files for gaps in sequence counters and time stamps
     """
     global report_file
+    global no_report_flag
     global exit_code
 
-    mode = validate_check_gap_args(data_file, report_file_path, mode, force)
+    if not no_report and not report_file_path.name:
+        report_file_path = Path(f"{data_file.name.replace('.csv', '')}.gap_report.txt")
 
-    report_file = open(report_file_path, "a")
+    mode = validate_check_gap_args(data_file, report_file_path, mode, force, no_report)
+
+    if not no_report:
+        report_file = open(report_file_path, "a")
+    else:
+        no_report_flag = no_report
+
     reader = csv.DictReader(data_file)
 
     if mode != Mode.auto:
@@ -167,7 +179,10 @@ def main(
             f"Gap checker completed successfully. Checked {packet_counter} packet(s) across {line_count} rows of data."
         )
 
-    report_file.close()
+    if not no_report:
+        report_file.close()
+        print(f"Report saved to {report_file_path}")
+
     if exit_code != 0:
         raise typer.Exit(code=exit_code)
 
@@ -184,8 +199,8 @@ def get_integer(line_count, row, field):
     return value
 
 
-def validate_check_gap_args(data_file, report_file_path, mode, force):
-    if report_file_path.exists():
+def validate_check_gap_args(data_file, report_file_path, mode, force, no_report):
+    if not (no_report) and report_file_path.exists():
         if force:
             os.remove(report_file_path)
         else:
@@ -354,7 +369,10 @@ def verify_packet_completeness(
 def write_line(message: str):
     print(message)
     global report_file
-    report_file.write(message + "\n")
+    global no_report_flag
+
+    if not no_report_flag:
+        report_file.write(message + "\n")
 
 
 def write_error(message: str):
