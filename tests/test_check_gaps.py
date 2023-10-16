@@ -12,8 +12,24 @@ from src.main import app
 
 runner = CliRunner()
 report_file = Path("gap-report.txt")
-default_command_params = ["check-gap", "--mode", "BurstE128", "sample-data/example.csv"]
-alt_command_params = ["check-gap", "-f", "-m", "normalE8", "sample-data/example.csv"]
+command_start_params = ["check-gap", "--report", report_file.absolute()]
+default_command_params = [
+    "check-gap",
+    "--report",
+    report_file.absolute(),
+    "--mode",
+    "BurstE128",
+    "sample-data/example.csv",
+]
+alt_command_params = [
+    "check-gap",
+    "--report",
+    report_file.absolute(),
+    "-f",
+    "-m",
+    "normalE8",
+    "sample-data/example.csv",
+]
 
 
 # or use something like @pytest.mark.usefixtures("run_around_tests")
@@ -33,7 +49,22 @@ def test_check_gap_creates_report():
 
     print(result.stdout)
     assert result.exit_code == 0
-    assert report_file.exists
+    assert os.path.exists(report_file.absolute())
+
+
+def test_check_gap_with_no_report_does_not_create_report():
+    result = runner.invoke(
+        app,
+        [
+            "check-gap",
+            "--no-report",
+            "--mode",
+            "BurstE128",
+            "sample-data/example.csv",
+        ],
+    )
+
+    assert not os.path.exists(report_file.absolute())
 
 
 def test_check_gap_creates_error_report_when_too_many_row_per_packet():
@@ -63,7 +94,8 @@ def test_check_gap_will_overwrite_report_when_forced():
         pass
 
     result = runner.invoke(
-        app, ["check-gap", "-f", "--mode", "BurstE128", "sample-data/example.csv"]
+        app,
+        command_start_params + ["-f", "--mode", "BurstE128", "sample-data/example.csv"],
     )
 
     assert result.exit_code == 0
@@ -83,8 +115,8 @@ def test_check_gap_will_overwrite_error_report_when_forced():
 def test_check_gap_finds_invalid_sequence_counter():
     result = runner.invoke(
         app,
-        [
-            "check-gap",
+        command_start_params
+        + [
             "--mode",
             "normalE8",
             "sample-data/normal_data20230112-11h23-bad-sequence.csv",
@@ -101,8 +133,8 @@ def test_check_gap_finds_invalid_sequence_counter():
 def test_check_gap_finds_invalid_sequence_counter_within_packet():
     result = runner.invoke(
         app,
-        [
-            "check-gap",
+        command_start_params
+        + [
             "--mode",
             "normalE8",
             "sample-data/normal_data20230112-11h23-bad-sequence-within-packet.csv",
@@ -118,7 +150,7 @@ def test_check_gap_finds_invalid_sequence_counter_within_packet():
 
 def test_check_gap_has_no_errors_for_valid_burst_data():
     result = runner.invoke(
-        app, ["check-gap", "sample-data/burst_data20230112-11h23.csv"]
+        app, command_start_params + ["sample-data/burst_data20230112-11h23.csv"]
     )
 
     assert result.exit_code == 0
@@ -131,7 +163,8 @@ def test_check_gap_has_no_errors_for_valid_burst_data():
 def test_check_gap_finds_invalid_if_in_wrong_mode():
     result = runner.invoke(
         app,
-        ["check-gap", "--mode", "normalE8", "sample-data/burst_data20230112-11h23.csv"],
+        command_start_params
+        + ["--mode", "normalE8", "sample-data/burst_data20230112-11h23.csv"],
     )
 
     print(result.stdout)
@@ -141,7 +174,9 @@ def test_check_gap_finds_invalid_if_in_wrong_mode():
 
 def test_check_gap_finds_invalid_if_course_time_jumps_3_seconds_not_2():
     result = runner.invoke(
-        app, ["check-gap", "sample-data/burst_data20230112-11h23-bad-time-course.csv"]
+        app,
+        command_start_params
+        + ["sample-data/burst_data20230112-11h23-bad-time-course.csv"],
     )
 
     assert (
@@ -153,7 +188,9 @@ def test_check_gap_finds_invalid_if_course_time_jumps_3_seconds_not_2():
 
 def test_check_gap_finds_invalid_if_course_time_is_under_threshold_in_secondary_timestamp():
     result = runner.invoke(
-        app, ["check-gap", "sample-data/burst_data20230112-11h23-bad-time-fine.csv"]
+        app,
+        command_start_params
+        + ["sample-data/burst_data20230112-11h23-bad-time-fine.csv"],
     )
 
     assert (
@@ -166,7 +203,8 @@ def test_check_gap_finds_invalid_if_course_time_is_under_threshold_in_secondary_
 def test_check_gap_ignores_wrapping_sequence_counter():
     result = runner.invoke(
         app,
-        ["check-gap", "--mode", "normalE8", "sample-data/example-seq-count-wraps.csv"],
+        command_start_params
+        + ["--mode", "normalE8", "sample-data/example-seq-count-wraps.csv"],
     )
 
     assert "Non sequential packet detected" not in result.stdout
@@ -175,8 +213,8 @@ def test_check_gap_ignores_wrapping_sequence_counter():
 def test_check_gap_identifies_all_zero_vectors():
     result = runner.invoke(
         app,
-        [
-            "check-gap",
+        command_start_params
+        + [
             "--mode",
             "normalE8",
             "sample-data/example-all-vectors-are-zero.csv",
@@ -197,7 +235,9 @@ def test_check_gap_identifies_all_zero_vectors():
 
 def test_check_gap_has_no_errors_for_valid_normal_data_in_filename_mode():
     result = runner.invoke(
-        app, ["check-gap", "sample-data/MAGScience-normal-(2,2)-8s-20230922-11h50.csv"]
+        app,
+        command_start_params
+        + ["sample-data/MAGScience-normal-(2,2)-8s-20230922-11h50.csv"],
     )
 
     print(result.stdout)
@@ -210,7 +250,9 @@ def test_check_gap_has_no_errors_for_valid_normal_data_in_filename_mode():
 
 def test_check_gap_has_no_errors_for_valid_normal_data_at_1s_in_filename_mode():
     result = runner.invoke(
-        app, ["check-gap", "sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50.csv"]
+        app,
+        command_start_params
+        + ["sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50.csv"],
     )
 
     print(result.stdout)
@@ -223,7 +265,9 @@ def test_check_gap_has_no_errors_for_valid_normal_data_at_1s_in_filename_mode():
 
 def test_check_gap_has_no_errors_for_valid_normal_data_with_lower_secondary_rate_in_filename_mode():
     result = runner.invoke(
-        app, ["check-gap", "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50.csv"]
+        app,
+        command_start_params
+        + ["sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50.csv"],
     )
 
     print(result.stdout)
@@ -236,7 +280,9 @@ def test_check_gap_has_no_errors_for_valid_normal_data_with_lower_secondary_rate
 
 def test_check_gap_has_no_errors_for_valid_normal_data_with_lower_primary_rate_in_filename_mode():
     result = runner.invoke(
-        app, ["check-gap", "sample-data/MAGScience-normal-(1,2)-1s-20230922-11h50.csv"]
+        app,
+        command_start_params
+        + ["sample-data/MAGScience-normal-(1,2)-1s-20230922-11h50.csv"],
     )
 
     print(result.stdout)
@@ -250,8 +296,8 @@ def test_check_gap_has_no_errors_for_valid_normal_data_with_lower_primary_rate_i
 def test_check_gap_finds_course_time_jump_2s_when_should_be_1s_for_normal_data_with_lower_secondary_rate_in_filename_mode():
     result = runner.invoke(
         app,
-        [
-            "check-gap",
+        command_start_params
+        + [
             "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-bad-time-course.csv",
         ],
     )
@@ -272,8 +318,8 @@ def test_check_gap_finds_course_time_jump_2s_when_should_be_1s_for_normal_data_w
 def test_check_gap_finds_finds_incomplete_packets_in_both_sensors_for_normal_data_with_lower_secondary_rate_in_filename_mode():
     result = runner.invoke(
         app,
-        [
-            "check-gap",
+        command_start_params
+        + [
             "sample-data/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-packet.csv",
         ],
     )
@@ -290,8 +336,8 @@ def test_check_gap_finds_finds_incomplete_packets_in_both_sensors_for_normal_dat
 def test_check_gap_finds_finds_incomplete_last_packet_in_both_sensors_for_normal_data_with_lower_secondary_rate_in_filename_mode():
     result = runner.invoke(
         app,
-        [
-            "check-gap",
+        command_start_params
+        + [
             "sample-data/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-last-packet.csv",
         ],
     )
@@ -308,8 +354,8 @@ def test_check_gap_finds_finds_incomplete_last_packet_in_both_sensors_for_normal
 def test_check_gap_find_additional_secondary_sensor_data_with_lower_secondary_rate_in_filename_mode():
     result = runner.invoke(
         app,
-        [
-            "check-gap",
+        command_start_params
+        + [
             "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-extra-secondary-data.csv",
         ],
     )
