@@ -86,7 +86,10 @@ def test_check_gap_will_not_overwrite_report():
     result = runner.invoke(app, default_command_params)
 
     assert result.exit_code == 1
-    assert "gap-report.txt already exists - delete file or use --force" in result.stdout
+    assert (
+        "gap-report.txt already exists - specify a different report file name with --report or use --force to overwrite"
+        in result.stdout
+    )
 
 
 def test_check_gap_will_overwrite_report_when_forced():

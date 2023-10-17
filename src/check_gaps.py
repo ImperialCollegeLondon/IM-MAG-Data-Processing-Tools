@@ -204,7 +204,9 @@ def validate_check_gap_args(data_file, report_file_path, mode, force, no_report)
         if force:
             os.remove(report_file_path)
         else:
-            print(f"{report_file_path} already exists - delete file or use --force")
+            print(
+                f"{report_file_path} already exists - specify a different report file name with --report or use --force to overwrite"
+            )
             raise typer.Abort()
 
     if not data_file.name:
