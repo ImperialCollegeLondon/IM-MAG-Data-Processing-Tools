@@ -133,3 +133,4 @@ dmypy.json
 site/
 /gap-report.txt
 *gap_report.txt
+/sample-data/*.json

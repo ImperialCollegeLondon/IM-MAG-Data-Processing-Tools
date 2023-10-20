@@ -18,6 +18,6 @@ poetry run black src
 poetry run flake8
 
 # execute unit tests with code coverage
-poetry run pytest -s --cov-config=.coveragerc --cov=src --cov-append --cov-report=xml --cov-report term-missing --cov-report=html --junitxml=test-results.xml tests
+poetry run pytest -rP -v --cov-config=.coveragerc --cov=src --cov-append --cov-report=xml --cov-report term-missing --cov-report=html --junitxml=test-results.xml tests
 
 
