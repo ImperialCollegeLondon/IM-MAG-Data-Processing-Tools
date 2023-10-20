@@ -65,6 +65,10 @@ def main(
     global no_report_flag
     global exit_code
 
+    report_file = None
+    no_report_flag = False
+    exit_code = 0
+
     if not no_report and not report_file_path.name:
         report_file_path = Path(
             f"{data_file.name.replace('.csv', '')}{report_file_suffix}"
@@ -182,38 +186,62 @@ def main(
             prev_seq = sequence
 
         # check the last packet has a complete set of vectors
-        verify_packet_completeness(
+        complete_gap_check(
+            report_file_path,
+            no_report,
+            mode_config,
+            line_count,
+            packet_start_line_count,
+            packet_counter,
+            prev_seq,
             primary_vector_count,
             secondary_vector_count,
-            mode_config,
-            prev_seq,
-            packet_start_line_count,
-            True,
         )
-
-        if exit_code != 0:
-            write_line(
-                f"Error - found bad science data! Checked {packet_counter} packet(s) across {line_count} rows of data."
-            )
-        else:
-            write_line(
-                f"Gap checker completed successfully. Checked {packet_counter} packet(s) across {line_count} rows of data."
-            )
-
-        if report_file:
-            report_file.close()
-
-        if not no_report:
-            print(f"Report saved to {report_file_path}")
     # end of if not summarise_only
 
     if not no_report:
-        # generate a nice sumary of all ther errors by scanning all gap reports in the folder
+        # generate a nice summary of all the errors by scanning all gap reports in the folder
         folder = Path(data_file.name).parent
         generate_summary(folder, f"*{report_file_suffix}")
 
     if exit_code != 0:
         raise typer.Exit(code=exit_code)
+
+
+def complete_gap_check(
+    report_file_path,
+    no_report,
+    mode_config,
+    line_count,
+    packet_start_line_count,
+    packet_counter,
+    prev_seq,
+    primary_vector_count,
+    secondary_vector_count,
+):
+    verify_packet_completeness(
+        primary_vector_count,
+        secondary_vector_count,
+        mode_config,
+        prev_seq,
+        packet_start_line_count,
+        True,
+    )
+
+    if exit_code != 0:
+        write_line(
+            f"Error - found bad science data! Checked {packet_counter} packet(s) across {line_count} rows of data."
+        )
+    else:
+        write_line(
+            f"Gap checker completed successfully. Checked {packet_counter} packet(s) across {line_count} rows of data."
+        )
+
+    if report_file:
+        report_file.close()
+
+    if not no_report:
+        print(f"Report saved to {report_file_path}")
 
 
 def get_integer(line_count, row, field):
