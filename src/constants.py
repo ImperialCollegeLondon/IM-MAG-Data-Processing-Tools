@@ -1,0 +1,12 @@
+class CONSTANTS:
+    TOO_MANY_ROWS = "Packet has too many rows"
+    VECTORS_ALL_ZERO = "Vectors are all zero"
+    NONE_SEQUENTIAL = "Non sequential packet"
+    PACKET_INCOMPLETE = "packet is incomplete"
+    EXPECTED_NUMERIC_FORMAT = "Expected line {line_count} to have a numeric"
+    EXPECTED_NUMERIC_MATCH_REGEX = "Expected line [0-9]+ to have a numeric"
+    SEQUENCE_NUMBERS_VARY = "Sequence numbers vary within packet"
+    RANGE_IS_INVALID = "Range value is out of range"
+    VECTORS_NON_EMPTY = "Vectors are non-empty"
+    PACKET_TOO_BIG = "packet is too big"
+    TIMESTAMP = "timestamp"
