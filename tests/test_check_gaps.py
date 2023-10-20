@@ -2,6 +2,7 @@
 """Tests for `check-gaps`."""
 # pylint: disable=redefined-outer-name
 
+import json
 import os
 from pathlib import Path
 
@@ -11,30 +12,46 @@ from typer.testing import CliRunner
 from src.main import app
 
 runner = CliRunner()
-report_file = Path("gap-report.txt")
-command_start_params = ["check-gap", "--report", report_file.absolute()]
-default_command_params = [
-    "check-gap",
-    "--report",
-    report_file.absolute(),
-    "--mode",
-    "BurstE128",
-    "sample-data/example.csv",
-]
-alt_command_params = [
-    "check-gap",
-    "--report",
-    report_file.absolute(),
-    "-f",
-    "-m",
-    "normalE8",
-    "sample-data/example.csv",
-]
+testIndex = 0
+report_file = Path("uninitialised.txt")
+command_start_params = []
+default_command_params = []
+alt_command_params = []
 
 
 # or use something like @pytest.mark.usefixtures("run_around_tests")
 @pytest.fixture(autouse=True)
 def run_around_tests():
+    global testIndex
+    global report_file
+    global command_start_params
+    global default_command_params
+    global alt_command_params
+
+    if report_file.exists():
+        os.remove(report_file.absolute())
+
+    testIndex += 1
+    report_file = Path(f"sample-data/test{testIndex}_gap-report.txt")
+    command_start_params = ["check-gap", "--report", report_file.absolute()]
+    default_command_params = [
+        "check-gap",
+        "--report",
+        report_file.absolute(),
+        "--mode",
+        "BurstE128",
+        "sample-data/example.csv",
+    ]
+    alt_command_params = [
+        "check-gap",
+        "--report",
+        report_file.absolute(),
+        "-f",
+        "-m",
+        "normalE8",
+        "sample-data/example.csv",
+    ]
+
     if report_file.exists():
         os.remove(report_file.absolute())
 
@@ -42,6 +59,10 @@ def run_around_tests():
 
     if report_file.exists():
         os.remove(report_file.absolute())
+
+    json = Path("sample-data/gap_check_summary.json")
+    if json.exists():
+        os.remove(json.absolute())
 
 
 def test_check_gap_creates_report():
@@ -52,8 +73,31 @@ def test_check_gap_creates_report():
     assert os.path.exists(report_file.absolute())
 
 
-def test_check_gap_with_no_report_does_not_create_report():
+def test_check_gap_creates_report_name_based_on_a_suffix():
+    expected_report_file = Path("sample-data/example_TEST_SUFFIX.txt")
+    if expected_report_file.exists():
+        os.remove(expected_report_file.absolute())
+
     result = runner.invoke(
+        app,
+        [
+            "check-gap",
+            "--report-suffix",
+            "_TEST_SUFFIX.txt",
+            "--mode",
+            "BurstE128",
+            "sample-data/example.csv",
+        ],
+    )
+
+    print(result.stdout)
+    assert result.exit_code == 0
+    assert os.path.exists(expected_report_file.absolute())
+    os.remove(expected_report_file.absolute())
+
+
+def test_check_gap_with_no_report_does_not_create_report():
+    runner.invoke(
         app,
         [
             "check-gap",
@@ -126,6 +170,7 @@ def test_check_gap_finds_invalid_sequence_counter():
         ],
     )
 
+    print(result.stdout)
     assert (
         "Non sequential packet detected! line number 34, sequence count: 99, vector number 1"
         in result.stdout
@@ -374,3 +419,20 @@ def test_check_gap_find_additional_secondary_sensor_data_with_lower_secondary_ra
         "Checking sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-extra-secondary-data.csv in mode auto (2, 1) @ 1s"
         in result.stdout
     )
+
+
+def test_check_gap_generates_correct_summary_file():
+    result = runner.invoke(
+        app,
+        command_start_params
+        + [
+            "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-extra-secondary-data.csv",
+        ],
+    )
+    with open("sample-data/gap_check_summary.json", "r") as json_file:
+        json_object = json.load(json_file)
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert json_object["Gap check result"] == "FAILED"
+    assert json_object["Corrupt science packet errors"] == 1
