@@ -503,8 +503,10 @@ def generate_summary(folder: Path, report_file_glob: str):
 
     if len(summary) == 2:
         summary["Gap check result"] = "PASSED"
+        print("Gap check passed")
     else:
         summary["Gap check result"] = "FAILED"
+        print("Gap check failed")
 
     if summaryJsonPath.exists():
         os.remove(summaryJsonPath)
