@@ -4,6 +4,7 @@ import re
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Optional
+from constants import CONSTANTS
 
 import typer
 
@@ -119,7 +120,7 @@ def main(
         if packet_line_count > mode_config.rows_per_packet:
             if packet_line_count == mode_config.rows_per_packet + 1:
                 write_error(
-                    f"Packet has too many rows. Expected {mode_config.rows_per_packet}. line number {line_count + 1}, sequence count: {sequence}"
+                    f"{CONSTANTS.TOO_MANY_ROWS}. Expected {mode_config.rows_per_packet}. line number {line_count + 1}, sequence count: {sequence}"
                 )
         else:
             if hasPrimary:
@@ -190,9 +191,8 @@ def main(
 def get_integer(line_count, row, field):
     value = row[field]
     if not (value.strip("-").isnumeric()):
-        write_error(
-            f"Expected line {line_count + 1} to have a numeric {field}, found '{value}'"
-        )
+        msg = CONSTANTS.EXPECTED_NUMERIC_FORMAT + " {field}, found '{value}'"
+        write_error(msg.format(line_count=line_count + 1, field=field, value=value))
         value = 0
     else:
         value = int(value)
@@ -244,11 +244,11 @@ def verify_sequence_counter(
 
         # check that the seqence numbers are the same within the packet
         if packet_line_count > 1 and sequence != prev_seq:
-            write_error(f"Sequence numbers vary within packet! {line_id}")
+            write_error(f"{CONSTANTS.SEQUENCE_NUMBERS_VARY}! {line_id}")
 
         # sequence count must be seqential between packets
         if packet_line_count == 1 and sequence != ((prev_seq + 1) % 0x4000):
-            write_error(f"Non sequential packet detected! {line_id}")
+            write_error(f"{CONSTANTS.NONE_SEQUENTIAL} detected! {line_id}")
 
     return packet_line_count
 
@@ -278,17 +278,17 @@ def verify_timestamp(
 
         if gap_between_packets < lower_limit:
             write_error(
-                f"{timestamp_type} timestamp is {gap_between_packets:.5f}s after the previous packets (less than {lower_limit}s). {line_id}"
+                f"{timestamp_type} {CONSTANTS.TIMESTAMP} is {gap_between_packets:.5f}s after the previous packets (less than {lower_limit}s). {line_id}"
             )
         if gap_between_packets > upper_limit:
             write_error(
-                f"{timestamp_type} timestamp is {gap_between_packets:.5f}s after the previous packets (more than {upper_limit}s). {line_id}"
+                f"{timestamp_type} {CONSTANTS.TIMESTAMP} is {gap_between_packets:.5f}s after the previous packets (more than {upper_limit}s). {line_id}"
             )
 
     elif line_count > 0 and packet_line_count > 1:
         if gap_between_packets > 0:
             write_error(
-                f"{timestamp_type} timestamp should be the same as the previous line. {line_id}"
+                f"{timestamp_type} {CONSTANTS.TIMESTAMP} should be the same as the previous line. {line_id}"
             )
 
     verify_timestamp.prev_time[timestamp_type] = time
@@ -311,12 +311,14 @@ def verify_non_zero_vectors(
     r = get_integer(line_count, row, f"rng_{pri_or_sec}")
 
     if x == 0 and y == 0 and z == 0:
-        write_error(f"Vectors are all zero for {primary_or_secondary} on {line_id}")
+        write_error(
+            f"{CONSTANTS.VECTORS_ALL_ZERO} for {primary_or_secondary} on {line_id}"
+        )
         return False
 
     if r < 0 or r > 3:
         write_error(
-            f"Range value is out of range for {primary_or_secondary} on {line_id}"
+            f"{CONSTANTS.RANGE_IS_INVALID} for {primary_or_secondary} on {line_id}"
         )
         return False
 
@@ -337,7 +339,9 @@ def verify_empty_vectors(
     r = row[f"rng_{pri_or_sec}"]
 
     if x or y or z or r:
-        write_error(f"Vectors are non-empty for {primary_or_secondary} on {line_id}")
+        write_error(
+            f"{CONSTANTS.VECTORS_NON_EMPTY} for {primary_or_secondary} on {line_id}"
+        )
         return False
 
     return True
@@ -351,20 +355,20 @@ def verify_packet_completeness(
     packet_start_line_count: int,
     is_last_packet: bool,
 ):
-    packet_name = "The last packet" if is_last_packet else "A packet"
+    packet_name = "The last" if is_last_packet else "A"
     if (
         primary_vector_count < mode_config.primary_vectors_per_packet
         or secondary_vector_count < mode_config.secondary_vectors_per_packet
     ):
         write_error(
-            f"{packet_name} is incomplete, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
+            f"{packet_name} {CONSTANTS.PACKET_INCOMPLETE}, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
         )
     if (
         primary_vector_count > mode_config.primary_vectors_per_packet
         or secondary_vector_count > mode_config.secondary_vectors_per_packet
     ):
         write_error(
-            f"{packet_name} is too big, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
+            f"{packet_name} {CONSTANTS.PACKET_TOO_BIG}, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
         )
 
 
