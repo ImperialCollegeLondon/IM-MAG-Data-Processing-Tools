@@ -160,8 +160,10 @@ def main(
                         pri_fine,
                         "primary",
                     )
-                    if verify_non_zero_vectors(row, line_count, sequence, "primary"):
+                    if is_non_empty_vector(row, line_count, sequence, "primary"):
                         primary_vector_count += 1
+                        verify_non_zero_vectors(row, line_count, sequence, "primary")
+
                 else:
                     verify_empty_vectors(row, line_count, sequence, "primary")
 
@@ -178,8 +180,11 @@ def main(
                         sec_fine,
                         "secondary",
                     )
-                    if verify_non_zero_vectors(row, line_count, sequence, "secondary"):
+
+                    if is_non_empty_vector(row, line_count, sequence, "secondary"):
                         secondary_vector_count += 1
+                        verify_non_zero_vectors(row, line_count, sequence, "secondary")
+
                 else:
                     verify_empty_vectors(row, line_count, sequence, "secondary")
 
@@ -381,6 +386,23 @@ def verify_non_zero_vectors(
         return False
 
     return True
+
+
+def is_non_empty_vector(
+    row: dict[str, str], line_count: int, sequence: int, primary_or_secondary: str
+) -> bool:
+    # take the first 3 chars
+    pri_or_sec = primary_or_secondary[0:3]
+
+    x = row[f"x_{pri_or_sec}"]
+    y = row[f"y_{pri_or_sec}"]
+    z = row[f"z_{pri_or_sec}"]
+    r = row[f"rng_{pri_or_sec}"]
+
+    if x and y and z and r:
+        return True
+
+    return False
 
 
 def verify_empty_vectors(
