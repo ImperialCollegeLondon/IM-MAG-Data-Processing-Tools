@@ -311,6 +311,25 @@ def test_check_gap_has_no_errors_for_valid_normal_data_at_1s_in_filename_mode():
     )
 
 
+def test_check_gap_finds_one_error_for_single_zero_vector_like_ramp_mode_in_valid_normal_data_at_1s():
+    result = runner.invoke(
+        app,
+        command_start_params
+        + [
+            "sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50-single-zero-vector.csv"
+        ],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert (
+        "Checking sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50-single-zero-vector.csv in mode auto (2, 2) @ 1s\n"
+        + "Vectors are all zero for primary on line number 3, sequence count: 0\n"
+        + "Error - found bad science data! Checked 2 packet(s) across 4 rows of data."
+        in result.stdout
+    )
+
+
 def test_check_gap_has_no_errors_for_valid_normal_data_with_lower_secondary_rate_in_filename_mode():
     result = runner.invoke(
         app,
@@ -376,6 +395,24 @@ def test_check_gap_finds_finds_incomplete_packets_in_both_sensors_for_normal_dat
     assert result.exit_code != 0
     assert (
         "A packet is incomplete, found 7 primary and 3 secondary vectors, expected 8 and 4. line number 2, sequence count: 0"
+        in result.stdout
+    )
+    assert result.exit_code == 2
+
+
+def test_check_gap_finds_finds_incomplete_packets_in_one_sensor_for_normal_data_with_lower_secondary_rate_in_filename_mode():
+    result = runner.invoke(
+        app,
+        command_start_params
+        + [
+            "sample-data/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-packet-v2.csv",
+        ],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert (
+        "A packet is incomplete, found 7 primary and 4 secondary vectors, expected 8 and 4. line number 2, sequence count: 0"
         in result.stdout
     )
     assert result.exit_code == 2
