@@ -491,9 +491,12 @@ def generate_summary(folder: Path, report_file_glob: str):
     summary = {}
     summary["Folder"] = str(folder.absolute())
     summary["Generated"] = str(datetime.now())
+    summary["Failed"] = []
+    summary["Passed"] = []
 
     for file in report_files:
         with open(file, "r") as f:
+            errorCount = 0
             for line in f:
                 error = None
                 if line.find(CONSTANTS.VECTORS_ALL_ZERO) != -1:
@@ -516,14 +519,21 @@ def generate_summary(folder: Path, report_file_glob: str):
                     error = "incorrect timestamp errors"
 
                 if error:
+                    errorCount += 1
                     if error in summary:
                         summary[error] += 1
                     else:
                         summary[error] = 1
 
+                    if file.name not in summary["Failed"]:
+                        summary["Failed"].append(file.name)
+
+            if errorCount == 0 and file.name not in summary["Passed"]:
+                summary["Passed"].append(file.name)
+
             f.close()
 
-    if len(summary) == 2:
+    if len(summary["Failed"]) == 0:
         summary["Gap check result"] = "PASSED"
         print("Gap check passed")
     else:
