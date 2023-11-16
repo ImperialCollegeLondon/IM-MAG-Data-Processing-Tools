@@ -458,7 +458,7 @@ def test_check_gap_find_additional_secondary_sensor_data_with_lower_secondary_ra
     )
 
 
-def test_check_gap_generates_correct_summary_file():
+def test_check_gap_generates_correct_summary_file_with_failures():
     result = runner.invoke(
         app,
         command_start_params
@@ -473,3 +473,18 @@ def test_check_gap_generates_correct_summary_file():
     assert result.exit_code != 0
     assert json_object["Gap check result"] == "FAILED"
     assert json_object["Corrupt science packet errors"] == 1
+    assert "_gap-report.txt" in json_object["Failed"][0]
+    assert json_object["Passed"] == []
+
+
+def test_check_gap_generates_correct_summary_file_with_all_passed():
+    result = runner.invoke(app, default_command_params)
+
+    with open("sample-data/gap_check_summary.json", "r") as json_file:
+        json_object = json.load(json_file)
+
+    print(result.stdout)
+    assert result.exit_code == 0
+    assert json_object["Gap check result"] == "PASSED"
+    assert "_gap-report.txt" in json_object["Passed"][0]
+    assert json_object["Failed"] == []
