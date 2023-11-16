@@ -70,9 +70,7 @@ def main(
     exit_code = 0
 
     if not no_report and not report_file_path.name:
-        report_file_path = Path(
-            f"{data_file.name.replace('.csv', '')}{report_file_suffix}"
-        )
+        report_file_path = Path(f"{data_file.name.rstrip('.csv')}{report_file_suffix}")
     # if the reportname has been specified and no suffix has been specified then use the report file name as the suffix
     elif report_file_suffix == ".gap_report.txt":
         report_file_suffix = report_file_path.name
