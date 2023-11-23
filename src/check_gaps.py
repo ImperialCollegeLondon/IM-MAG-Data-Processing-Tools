@@ -18,7 +18,7 @@ report_file: TextIOWrapper
 no_report_flag = False
 exit_code = 0
 MAX_FINE = 0x00FFFFFF  # max 24bit number, the largest fine time value
-TIME_TOLERANCE_BETWEEN_PACKETS = 0.005
+TIME_TOLERANCE_BETWEEN_PACKETS = 0.0001
 
 
 @app.callback(
