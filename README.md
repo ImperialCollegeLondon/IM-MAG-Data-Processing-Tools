@@ -17,9 +17,9 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
     ```bash
     python3 -m pip install --user pipx
     ```
-- [install mag with pipx](https://pypa.github.io/pipx/docs/#pipx-install) or with pip if you must.
+- [install mag with pipx](https://pypa.github.io/pipx/docs/#pipx-install) or with pip if you must. From a folder that contains the whl file or the gz file install like so:
     ```bash
-    pipx install --python python3.10 mag-*.tar.gz
+    pipx install --python python3.10 ./python3.10/mag-1.4.0-py3-none-any.whl
     ```
 - Run mag commands on the command line to check it installed ok
     ```bash
