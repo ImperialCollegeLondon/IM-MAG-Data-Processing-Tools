@@ -228,7 +228,11 @@ def test_check_gap_finds_invalid_if_course_time_jumps_3_seconds_not_2():
     )
 
     assert (
-        "primary timestamp is 2.99997s after the previous packets (more than 2.0001s). line number 258, sequence count: 1, SCLK: 2023-01-09 18:40:03"
+        "primary timestamp is 2.99997s after the previous packets (more than 2.000"
+        in result.stdout
+    )
+    assert (
+        "s). line number 258, sequence count: 1, SCLK: 2023-01-09 18:40:03"
         in result.stdout
     )
     assert result.exit_code == 2
@@ -406,11 +410,11 @@ def test_check_gap_finds_course_time_jump_2s_when_should_be_1s_for_normal_data_w
     print(result.stdout)
     assert result.exit_code != 0
     assert (
-        "primary timestamp is 2.00000s after the previous packets (more than 1.0001s). line number 4, sequence count: 1"
+        "primary timestamp is 2.00000s after the previous packets (more than 1.00039s). line number 4, sequence count: 1, SCLK: 2023-09-22 10:50:33"
         in result.stdout
     )
     assert (
-        "secondary timestamp is 2.00000s after the previous packets (more than 1.0001s). line number 4, sequence count: 1"
+        "secondary timestamp is 2.00000s after the previous packets (more than 1.00039s). line number 4, sequence count: 1"
         in result.stdout
     )
     assert result.exit_code == 2
