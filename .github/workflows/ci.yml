@@ -51,19 +51,17 @@ jobs:
 
       - name: build
         run: |
-          ./build.sh
+            ./build.sh
 
       - name: Build wheels and source tarball
         run: |
-          poetry lock
-          poetry build
+            ./pack.sh
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v3
-        if: matrix.python-versions == '3.10'
         with:
           name: ${{ env.PACKAGE_NAME }}-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}
-          path: dist/*.tar.gz
+          path: dist/python${{matrix.python-versions}}
           if-no-files-found: error
 
       - name: Upload build artifact

@@ -1,7 +1,9 @@
 """Main module."""
 
 import datetime
+from typing import Annotated, Optional
 
+import pkg_resources
 import typer
 
 import check_gaps
@@ -13,7 +15,32 @@ app.add_typer(check_gaps.app, name="check-gap")
 
 @app.command()
 def countdown():
-    print(f"IMAP launch is {get_relative_time(datetime.datetime(2025, 2, 25))}")
+    print(
+        f"IMAP launch is (provisionally) {get_relative_time(datetime.datetime(2025, 5, 1))}"
+    )
+
+
+def version_callback(value: bool):
+    if value:
+        try:
+            version = pkg_resources.get_distribution("mag").version
+            print(f"MAG CLI Version {version}")
+
+        except pkg_resources.DistributionNotFound:
+            print("MAG CLI Version unknown, not installed via pip.")
+
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: Annotated[
+        Optional[bool],
+        typer.Option("--version", callback=version_callback, is_eager=True),
+    ] = None,
+):
+    # do nothing
+    pass
 
 
 SECOND = 1

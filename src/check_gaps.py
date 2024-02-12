@@ -19,7 +19,9 @@ no_report_flag = False
 exit_code = 0
 MIN_FINE = 0
 MAX_FINE = 0x0000FFFF  # max 16bit number, the largest fine time value in a packet. Fine time is 24 bits but we only telemeter the top 16
-TIME_TOLERANCE_BETWEEN_PACKETS = 0.0001
+TIME_TOLERANCE_BETWEEN_PACKETS = (
+    0.00039  # 5% of the vector cadence (req is 10%), so (1/128) * 0.05 = 0.000390625s
+)
 IMAP_EPOCH = datetime(2010, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
 
