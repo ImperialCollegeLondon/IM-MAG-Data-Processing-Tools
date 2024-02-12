@@ -57,11 +57,16 @@ jobs:
         run: |
             ./pack.sh
 
+      - name: Zip up the folder
+        run: |
+            cd dist
+            zip -r ${{ env.PACKAGE_NAME }}-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}.zip python${{matrix.python-versions}}
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.PACKAGE_NAME }}-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}
-          path: dist/python${{matrix.python-versions}}
+          path: dist/${{ env.PACKAGE_NAME }}-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}.zip
           if-no-files-found: error
 
       - name: Upload build artifact
