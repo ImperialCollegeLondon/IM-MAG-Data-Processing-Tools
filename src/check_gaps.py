@@ -17,7 +17,8 @@ app = typer.Typer()
 report_file: TextIOWrapper
 no_report_flag = False
 exit_code = 0
-MAX_FINE = 0x00FFFFFF  # max 24bit number, the largest fine time value
+MIN_FINE = 0
+MAX_FINE = 0x0000FFFF  # max 16bit number, the largest fine time value in a packet. Fine time is 24 bits but we only telemeter the top 16
 TIME_TOLERANCE_BETWEEN_PACKETS = 0.0001
 
 
@@ -324,6 +325,12 @@ def verify_timestamp(
     timestamp_type: str,
 ):
     line_id = f"line number {line_count + 1}, sequence count: {sequence}"
+
+    if fine < MIN_FINE or fine > MAX_FINE:
+        write_error(
+            f"{timestamp_type} {CONSTANTS.TIMESTAMP} fine time {fine} is out of range ({MIN_FINE}-{MAX_FINE}). {line_id}"
+        )
+        fine = 0
 
     prev_time = verify_timestamp.prev_time[timestamp_type]
     time: float = float(coarse) + (float(fine) / float(MAX_FINE))

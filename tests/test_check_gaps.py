@@ -228,7 +228,7 @@ def test_check_gap_finds_invalid_if_course_time_jumps_3_seconds_not_2():
     )
 
     assert (
-        "primary timestamp is 3.00000s after the previous packets (more than 2.0001s). line number 258, sequence count: 1"
+        "primary timestamp is 2.99997s after the previous packets (more than 2.0001s). line number 258, sequence count: 1"
         in result.stdout
     )
     assert result.exit_code == 2
@@ -242,10 +242,44 @@ def test_check_gap_finds_invalid_if_course_time_is_under_threshold_in_secondary_
     )
 
     assert (
-        "secondary timestamp is 1.98998s after the previous packets (less than 1.9999s). line number 258, sequence count: 1"
+        "secondary timestamp is 1.99989s after the previous packets (less than 1.9999s). line number 258, sequence count: 1"
         in result.stdout
     )
     assert result.exit_code == 2
+
+
+def test_check_gap_finds_invalid_if_course_time_is_under_threshold_in_secondary_timestamp():
+    result = runner.invoke(
+        app,
+        command_start_params
+        + [
+            "sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50-fine-time-out-of-range.csv"
+        ],
+    )
+
+    assert (
+        "secondary timestamp fine time -1 is out of range (0-65535). line number 4, sequence count: 1"
+        in result.stdout
+    )
+    assert (
+        "secondary timestamp fine time 65536 is out of range (0-65535). line number 6, sequence count: 2"
+        in result.stdout
+    )
+    assert result.exit_code == 2
+
+
+def test_check_gap_finds_valid_when_fine_time_wraps_and_over_2_secs_between_packets():
+    result = runner.invoke(
+        app,
+        command_start_params
+        + ["sample-data/MAGScience-normal-(2,2)-2s-20230922-11h50-fine-time-wraps.csv"],
+    )
+
+    assert (
+        "Gap checker completed successfully. Checked 2 packet(s) across 8 rows of data."
+        in result.stdout
+    )
+    assert result.exit_code == 0
 
 
 def test_check_gap_ignores_wrapping_sequence_counter():
