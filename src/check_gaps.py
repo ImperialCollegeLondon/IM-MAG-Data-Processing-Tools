@@ -2,7 +2,7 @@ import csv
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Optional
@@ -20,6 +20,7 @@ exit_code = 0
 MIN_FINE = 0
 MAX_FINE = 0x0000FFFF  # max 16bit number, the largest fine time value in a packet. Fine time is 24 bits but we only telemeter the top 16
 TIME_TOLERANCE_BETWEEN_PACKETS = 0.0001
+IMAP_EPOCH = datetime(2010, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
 
 @app.callback(
@@ -324,7 +325,8 @@ def verify_timestamp(
     fine: int,
     timestamp_type: str,
 ):
-    line_id = f"line number {line_count + 1}, sequence count: {sequence}"
+    sclk = (IMAP_EPOCH + timedelta(seconds=coarse)).strftime("%Y-%m-%d %H:%M:%S")
+    line_id = f"line number {line_count + 1}, sequence count: {sequence}, SCLK: {sclk}"
 
     if fine < MIN_FINE or fine > MAX_FINE:
         write_error(

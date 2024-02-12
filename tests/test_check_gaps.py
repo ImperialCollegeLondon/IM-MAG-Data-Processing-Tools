@@ -228,7 +228,7 @@ def test_check_gap_finds_invalid_if_course_time_jumps_3_seconds_not_2():
     )
 
     assert (
-        "primary timestamp is 2.99997s after the previous packets (more than 2.0001s). line number 258, sequence count: 1"
+        "primary timestamp is 2.99997s after the previous packets (more than 2.0001s). line number 258, sequence count: 1, SCLK: 2023-01-09 18:40:03"
         in result.stdout
     )
     assert result.exit_code == 2
