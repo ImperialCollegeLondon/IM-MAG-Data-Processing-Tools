@@ -6,7 +6,7 @@ on:
     paths-ignore:
       - 'README**'
     branches:
-      - '*'
+      - '**'
   pull_request:
     branches:
       - '*'
