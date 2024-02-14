@@ -6,16 +6,12 @@
         "context": "."
     },
 	"features": {
-        "ghcr.io/devcontainers/features/common-utils:2":{
-            "installZsh": "true",
+		"ghcr.io/devcontainers/features/common-utils:2.4.2": {
+			"installZsh": "true",
             "username": "vscode",
             "userUid": "1000",
             "userGid": "1000",
             "upgradePackages": "true"
-        },
-		"ghcr.io/devcontainers/features/git:1": {
-            "version": "latest",
-            "ppa": "false"
         }
         // poetry also available as a dev container feature but we install it using dev-env-first-time.sh so PATH is setup
 		//"ghcr.io/devcontainers-contrib/features/poetry:2": {},
