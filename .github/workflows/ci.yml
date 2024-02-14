@@ -7,6 +7,8 @@ on:
       - 'README**'
     branches:
       - '**'
+    tags:
+      - '*'
   pull_request:
     branches:
       - '*'
@@ -39,14 +41,24 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install poetry
-        # pip install tox tox-gh-actions poetry
 
-      - name: Declare variables for convenient use
-        id: variables_step
+      - name: Declare version variables for dev builds
+        id: variables_step_dev
         run: |
           poetry version $(poetry version --short)-dev.$GITHUB_RUN_NUMBER
+          echo "Using version from pyproject.toml file with dev suffix (not on a tag): $(poetry version --short)"
           echo "PACKAGE_NAME=$(poetry version | awk '{print $1}')" >> $GITHUB_ENV
           echo "PACKAGE_VERSION=$(poetry version --short)" >> $GITHUB_ENV
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        shell: bash
+
+      - name: Declare version variables for tag based builds
+        id: variables_step_tags
+        run: |
+          echo "Using version from pyproject.toml file: $(poetry version --short)"
+          echo "PACKAGE_NAME=$(poetry version | awk '{print $1}')" >> $GITHUB_ENV
+          echo "PACKAGE_VERSION=$(poetry version --short)" >> $GITHUB_ENV
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         shell: bash
 
       - name: build
@@ -57,10 +69,12 @@ jobs:
         run: |
             ./pack.sh
 
+      - name: Create Version file
+        run: echo "Version ${{ env.PACKAGE_VERSION }}, SHA ${{ github.sha }}, Ref ${{ github.ref_name }}" >  dist/python${{matrix.python-versions}}/version.txt
+
       - name: Zip up the folder
-        run: |
-            cd dist
-            zip -r ${{ env.PACKAGE_NAME }}-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}.zip python${{matrix.python-versions}}
+        run: zip -r ${{ env.PACKAGE_NAME }}-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}.zip python${{matrix.python-versions}}
+        working-directory: dist
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v3
@@ -76,6 +90,16 @@ jobs:
           name: Coverage-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}
           path: htmlcov
           if-no-files-found: error
+
+      - name: Create Release ${{github.ref_name}} & upload artifacts
+        uses: softprops/action-gh-release@v1
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        with:
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+          files: |
+            dist/${{ env.PACKAGE_NAME }}-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}.zip
 
       - name: Test Report
         uses: dorny/test-reporter@v1
