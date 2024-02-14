@@ -16,6 +16,7 @@ class Mode(str, Enum):
     normalE2 = "NormalE2"
     burst128 = "BurstE128"
     burst64 = "BurstE64"
+    i_alirt = "I-ALiRT"
     auto = "auto"
 
 
@@ -26,6 +27,7 @@ class ModeConfig:
     seconds_between_packets = 0
     primary_vectors_per_packet = 0
     secondary_vectors_per_packet = 0
+    sequence_counter_increment = 1
 
     def __init__(self, modeOrFileName: Mode | str):
         if isinstance(modeOrFileName, Mode):
@@ -45,6 +47,11 @@ class ModeConfig:
                 self.primary_rate = 64
                 self.secondary_rate = 64
                 self.seconds_between_packets = 2
+            elif modeOrFileName == Mode.i_alirt:
+                self.primary_rate = 1 / 4
+                self.secondary_rate = 1 / 4
+                self.seconds_between_packets = 4
+                self.sequence_counter_increment = 4
         else:
             # use regex to parse data_file like
             #    MAGScience-normal-(2,2)-8s-20230922-11h50.csv
