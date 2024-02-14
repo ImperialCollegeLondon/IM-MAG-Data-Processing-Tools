@@ -52,7 +52,8 @@
 				"EditorConfig.EditorConfig",
 				"ms-python.python",
 				"ms-python.flake8",
-                "ms-python.black-formatter"
+				"ms-python.black-formatter",
+				"github.vscode-github-actions"
 			]
 		}
 	},
