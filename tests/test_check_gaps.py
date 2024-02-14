@@ -17,6 +17,7 @@ report_file = Path("uninitialised.txt")
 command_start_params = []
 default_command_params = []
 alt_command_params = []
+SAMPLE_DATA_FOLDER = "sample-data"
 
 
 # or use something like @pytest.mark.usefixtures("run_around_tests")
@@ -32,7 +33,7 @@ def run_around_tests():
         os.remove(report_file.absolute())
 
     testIndex += 1
-    report_file = Path(f"sample-data/test{testIndex}_gap-report.txt")
+    report_file = Path(f"{SAMPLE_DATA_FOLDER}/test{testIndex}_gap-report.txt")
     command_start_params = ["check-gap", "--report", report_file.absolute()]
     default_command_params = [
         "check-gap",
@@ -40,7 +41,7 @@ def run_around_tests():
         report_file.absolute(),
         "--mode",
         "BurstE128",
-        "sample-data/example.csv",
+        f"{SAMPLE_DATA_FOLDER}/example.csv",
     ]
     alt_command_params = [
         "check-gap",
@@ -49,7 +50,7 @@ def run_around_tests():
         "-f",
         "-m",
         "normalE8",
-        "sample-data/example.csv",
+        f"{SAMPLE_DATA_FOLDER}/example.csv",
     ]
 
     if report_file.exists():
@@ -60,7 +61,7 @@ def run_around_tests():
     if report_file.exists():
         os.remove(report_file.absolute())
 
-    json = Path("sample-data/gap_check_summary.json")
+    json = Path(f"{SAMPLE_DATA_FOLDER}/gap_check_summary.json")
     if json.exists():
         os.remove(json.absolute())
 
@@ -74,7 +75,7 @@ def test_check_gap_creates_report():
 
 
 def test_check_gap_creates_report_name_based_on_a_suffix():
-    expected_report_file = Path("sample-data/example_TEST_SUFFIX.txt")
+    expected_report_file = Path(f"{SAMPLE_DATA_FOLDER}/example_TEST_SUFFIX.txt")
     if expected_report_file.exists():
         os.remove(expected_report_file.absolute())
 
@@ -86,7 +87,7 @@ def test_check_gap_creates_report_name_based_on_a_suffix():
             "_TEST_SUFFIX.txt",
             "--mode",
             "BurstE128",
-            "sample-data/example.csv",
+            f"{SAMPLE_DATA_FOLDER}/example.csv",
         ],
     )
 
@@ -104,7 +105,7 @@ def test_check_gap_with_no_report_does_not_create_report():
             "--no-report",
             "--mode",
             "BurstE128",
-            "sample-data/example.csv",
+            f"{SAMPLE_DATA_FOLDER}/example.csv",
         ],
     )
 
@@ -142,7 +143,8 @@ def test_check_gap_will_overwrite_report_when_forced():
 
     result = runner.invoke(
         app,
-        command_start_params + ["-f", "--mode", "BurstE128", "sample-data/example.csv"],
+        command_start_params
+        + ["-f", "--mode", "BurstE128", f"{SAMPLE_DATA_FOLDER}/example.csv"],
     )
 
     assert result.exit_code == 0
@@ -166,7 +168,7 @@ def test_check_gap_finds_invalid_sequence_counter():
         + [
             "--mode",
             "normalE8",
-            "sample-data/normal_data20230112-11h23-bad-sequence.csv",
+            f"{SAMPLE_DATA_FOLDER}/normal_data20230112-11h23-bad-sequence.csv",
         ],
     )
 
@@ -185,7 +187,7 @@ def test_check_gap_finds_invalid_sequence_counter_within_packet():
         + [
             "--mode",
             "normalE8",
-            "sample-data/normal_data20230112-11h23-bad-sequence-within-packet.csv",
+            f"{SAMPLE_DATA_FOLDER}/normal_data20230112-11h23-bad-sequence-within-packet.csv",
         ],
     )
 
@@ -198,7 +200,8 @@ def test_check_gap_finds_invalid_sequence_counter_within_packet():
 
 def test_check_gap_has_no_errors_for_valid_burst_data():
     result = runner.invoke(
-        app, command_start_params + ["sample-data/burst_data20230112-11h23.csv"]
+        app,
+        command_start_params + [f"{SAMPLE_DATA_FOLDER}/burst_data20230112-11h23.csv"],
     )
 
     assert result.exit_code == 0
@@ -212,7 +215,7 @@ def test_check_gap_finds_invalid_if_in_wrong_mode():
     result = runner.invoke(
         app,
         command_start_params
-        + ["--mode", "normalE8", "sample-data/burst_data20230112-11h23.csv"],
+        + ["--mode", "normalE8", f"{SAMPLE_DATA_FOLDER}/burst_data20230112-11h23.csv"],
     )
 
     print(result.stdout)
@@ -224,7 +227,7 @@ def test_check_gap_finds_invalid_if_course_time_jumps_3_seconds_not_2():
     result = runner.invoke(
         app,
         command_start_params
-        + ["sample-data/burst_data20230112-11h23-bad-time-course.csv"],
+        + [f"{SAMPLE_DATA_FOLDER}/burst_data20230112-11h23-bad-time-course.csv"],
     )
 
     assert (
@@ -242,7 +245,7 @@ def test_check_gap_finds_invalid_if_course_and_fine_time_is_below_the_min_defaul
     result = runner.invoke(
         app,
         command_start_params
-        + ["sample-data/burst_data20230112-11h23-bad-time-fine.csv"],
+        + [f"{SAMPLE_DATA_FOLDER}/burst_data20230112-11h23-bad-time-fine.csv"],
     )
 
     assert (
@@ -259,7 +262,7 @@ def test_check_gap_finds_bad_data_as_valid_if_larger_than_default_tolerence_is_u
         + [
             "--tolerance",
             "0.0006",  # just over the default of 0.00059 which allows this data to become valid
-            "sample-data/burst_data20230112-11h23-bad-time-fine.csv",
+            f"{SAMPLE_DATA_FOLDER}/burst_data20230112-11h23-bad-time-fine.csv",
         ],
     )
 
@@ -271,7 +274,7 @@ def test_check_gap_finds_invalid_if_fine_time_is_negative_or_more_than_16bit_max
         app,
         command_start_params
         + [
-            "sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50-fine-time-out-of-range.csv"
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,2)-1s-20230922-11h50-fine-time-out-of-range.csv"
         ],
     )
 
@@ -290,7 +293,9 @@ def test_check_gap_finds_valid_when_fine_time_wraps_and_over_2_secs_between_pack
     result = runner.invoke(
         app,
         command_start_params
-        + ["sample-data/MAGScience-normal-(2,2)-2s-20230922-11h50-fine-time-wraps.csv"],
+        + [
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,2)-2s-20230922-11h50-fine-time-wraps.csv"
+        ],
     )
 
     assert (
@@ -304,7 +309,7 @@ def test_check_gap_ignores_wrapping_sequence_counter():
     result = runner.invoke(
         app,
         command_start_params
-        + ["--mode", "normalE8", "sample-data/example-seq-count-wraps.csv"],
+        + ["--mode", "normalE8", f"{SAMPLE_DATA_FOLDER}/example-seq-count-wraps.csv"],
     )
 
     assert "Non sequential packet detected" not in result.stdout
@@ -317,7 +322,7 @@ def test_check_gap_identifies_all_zero_vectors():
         + [
             "--mode",
             "normalE8",
-            "sample-data/example-all-vectors-are-zero.csv",
+            f"{SAMPLE_DATA_FOLDER}/example-all-vectors-are-zero.csv",
         ],
     )
 
@@ -337,7 +342,7 @@ def test_check_gap_has_no_errors_for_valid_normal_data_in_filename_mode():
     result = runner.invoke(
         app,
         command_start_params
-        + ["sample-data/MAGScience-normal-(2,2)-8s-20230922-11h50.csv"],
+        + [f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,2)-8s-20230922-11h50.csv"],
     )
 
     print(result.stdout)
@@ -352,7 +357,7 @@ def test_check_gap_has_no_errors_for_valid_normal_data_at_1s_in_filename_mode():
     result = runner.invoke(
         app,
         command_start_params
-        + ["sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50.csv"],
+        + [f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,2)-1s-20230922-11h50.csv"],
     )
 
     print(result.stdout)
@@ -368,7 +373,7 @@ def test_check_gap_finds_one_error_for_single_zero_vector_like_ramp_mode_in_vali
         app,
         command_start_params
         + [
-            "sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50-single-zero-vector.csv"
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,2)-1s-20230922-11h50-single-zero-vector.csv"
         ],
     )
 
@@ -386,7 +391,7 @@ def test_check_gap_has_no_errors_for_valid_normal_data_with_lower_secondary_rate
     result = runner.invoke(
         app,
         command_start_params
-        + ["sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50.csv"],
+        + [f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,1)-1s-20230922-11h50.csv"],
     )
 
     print(result.stdout)
@@ -401,7 +406,7 @@ def test_check_gap_has_no_errors_for_valid_normal_data_with_lower_primary_rate_i
     result = runner.invoke(
         app,
         command_start_params
-        + ["sample-data/MAGScience-normal-(1,2)-1s-20230922-11h50.csv"],
+        + [f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(1,2)-1s-20230922-11h50.csv"],
     )
 
     print(result.stdout)
@@ -412,12 +417,27 @@ def test_check_gap_has_no_errors_for_valid_normal_data_with_lower_primary_rate_i
     )
 
 
+def test_check_gap_has_no_errors_for_valid_I_ALiRT_data_with_no_rate_in_filename():
+    result = runner.invoke(
+        app,
+        command_start_params
+        + [f"{SAMPLE_DATA_FOLDER}/MAGScience-IALiRT-20240214-15h02.csv"],
+    )
+
+    print(result.stdout)
+    assert result.exit_code == 0
+    assert (
+        "Gap checker completed successfully. Checked 10 packet(s) across 10 rows of data."
+        in result.stdout
+    )
+
+
 def test_check_gap_finds_course_time_jump_2s_when_should_be_1s_for_normal_data_with_lower_secondary_rate_in_filename_mode():
     result = runner.invoke(
         app,
         command_start_params
         + [
-            "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-bad-time-course.csv",
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,1)-1s-20230922-11h50-bad-time-course.csv",
         ],
     )
 
@@ -441,7 +461,7 @@ def test_check_gap_uses_non_default_tolerance_in_messages():
         + [
             "--tolerance",
             "0.0001",
-            "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-bad-time-course.csv",
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,1)-1s-20230922-11h50-bad-time-course.csv",
         ],
     )
 
@@ -463,7 +483,7 @@ def test_check_gap_finds_finds_incomplete_packets_in_both_sensors_for_normal_dat
         app,
         command_start_params
         + [
-            "sample-data/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-packet.csv",
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-packet.csv",
         ],
     )
 
@@ -481,7 +501,7 @@ def test_check_gap_finds_finds_incomplete_packets_in_one_sensor_for_normal_data_
         app,
         command_start_params
         + [
-            "sample-data/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-packet-v2.csv",
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-packet-v2.csv",
         ],
     )
 
@@ -499,7 +519,7 @@ def test_check_gap_finds_finds_incomplete_last_packet_in_both_sensors_for_normal
         app,
         command_start_params
         + [
-            "sample-data/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-last-packet.csv",
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,1)-4s-20230922-11h50-incomplete-last-packet.csv",
         ],
     )
 
@@ -517,7 +537,7 @@ def test_check_gap_find_additional_secondary_sensor_data_with_lower_secondary_ra
         app,
         command_start_params
         + [
-            "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-extra-secondary-data.csv",
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,1)-1s-20230922-11h50-extra-secondary-data.csv",
         ],
     )
 
@@ -539,10 +559,10 @@ def test_check_gap_generates_correct_summary_file_with_failures():
         app,
         command_start_params
         + [
-            "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-extra-secondary-data.csv",
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,1)-1s-20230922-11h50-extra-secondary-data.csv",
         ],
     )
-    with open("sample-data/gap_check_summary.json", "r") as json_file:
+    with open(f"{SAMPLE_DATA_FOLDER}/gap_check_summary.json", "r") as json_file:
         json_object = json.load(json_file)
 
     print(result.stdout)
@@ -556,7 +576,7 @@ def test_check_gap_generates_correct_summary_file_with_failures():
 def test_check_gap_generates_correct_summary_file_with_all_passed():
     result = runner.invoke(app, default_command_params)
 
-    with open("sample-data/gap_check_summary.json", "r") as json_file:
+    with open(f"{SAMPLE_DATA_FOLDER}/gap_check_summary.json", "r") as json_file:
         json_object = json.load(json_file)
 
     print(result.stdout)

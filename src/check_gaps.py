@@ -291,6 +291,8 @@ def validate_check_gap_args(
             mode = Mode.burst128
         elif "normal" in data_file.name:
             mode = Mode.normalE8
+        elif "IALiRT" in data_file.name:
+            mode = Mode.i_alirt
 
         if mode == Mode.auto:
             print(
@@ -302,7 +304,7 @@ def validate_check_gap_args(
 
 
 def verify_sequence_counter(
-    mode_config, line_count, packet_line_count, prev_seq, sequence
+    mode_config: ModeConfig, line_count, packet_line_count, prev_seq, sequence
 ):
     if line_count > 1:
         line_id = f"line number {line_count + 1}, sequence count: {sequence}, vector number {packet_line_count}"
@@ -317,7 +319,9 @@ def verify_sequence_counter(
             write_error(f"{CONSTANTS.SEQUENCE_NUMBERS_VARY}! {line_id}")
 
         # sequence count must be seqential between packets
-        if packet_line_count == 1 and sequence != ((prev_seq + 1) % 0x4000):
+        if packet_line_count == 1 and sequence != (
+            (prev_seq + mode_config.sequence_counter_increment) % 0x4000
+        ):
             write_error(f"{CONSTANTS.NONE_SEQUENTIAL} detected! {line_id}")
 
     return packet_line_count
