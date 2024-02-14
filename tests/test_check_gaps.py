@@ -238,7 +238,7 @@ def test_check_gap_finds_invalid_if_course_time_jumps_3_seconds_not_2():
     assert result.exit_code == 2
 
 
-def test_check_gap_finds_invalid_if_course_time_is_under_threshold_in_secondary_timestamp():
+def test_check_gap_finds_invalid_if_course_and_fine_time_is_below_the_min_default_threshold_in_secondary_timestamp():
     result = runner.invoke(
         app,
         command_start_params
@@ -246,13 +246,27 @@ def test_check_gap_finds_invalid_if_course_time_is_under_threshold_in_secondary_
     )
 
     assert (
-        "secondary timestamp is 1.99989s after the previous packets (less than 1.9999s). line number 258, sequence count: 1"
+        "secondary timestamp is 1.99940s after the previous packets (less than 1.99941s). line number 258, sequence count: 1"
         in result.stdout
     )
     assert result.exit_code == 2
 
 
-def test_check_gap_finds_invalid_if_course_time_is_under_threshold_in_secondary_timestamp():
+def test_check_gap_finds_bad_data_as_valid_if_larger_than_default_tolerence_is_used():
+    result = runner.invoke(
+        app,
+        command_start_params
+        + [
+            "--tolerance",
+            "0.0006",  # just over the default of 0.00059 which allows this data to become valid
+            "sample-data/burst_data20230112-11h23-bad-time-fine.csv",
+        ],
+    )
+
+    assert result.exit_code == 0
+
+
+def test_check_gap_finds_invalid_if_fine_time_is_negative_or_more_than_16bit_max():
     result = runner.invoke(
         app,
         command_start_params
@@ -410,11 +424,35 @@ def test_check_gap_finds_course_time_jump_2s_when_should_be_1s_for_normal_data_w
     print(result.stdout)
     assert result.exit_code != 0
     assert (
-        "primary timestamp is 2.00000s after the previous packets (more than 1.00039s). line number 4, sequence count: 1, SCLK: 2023-09-22 10:50:33"
+        "primary timestamp is 2.00000s after the previous packets (more than 1.00059s). line number 4, sequence count: 1, SCLK: 2023-09-22 10:50:33"
         in result.stdout
     )
     assert (
-        "secondary timestamp is 2.00000s after the previous packets (more than 1.00039s). line number 4, sequence count: 1"
+        "secondary timestamp is 2.00000s after the previous packets (more than 1.00059s). line number 4, sequence count: 1"
+        in result.stdout
+    )
+    assert result.exit_code == 2
+
+
+def test_check_gap_uses_non_default_tolerance_in_messages():
+    result = runner.invoke(
+        app,
+        command_start_params
+        + [
+            "--tolerance",
+            "0.0001",
+            "sample-data/MAGScience-normal-(2,1)-1s-20230922-11h50-bad-time-course.csv",
+        ],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert (
+        "primary timestamp is 2.00000s after the previous packets (more than 1.0001s). line number 4, sequence count: 1, SCLK: 2023-09-22 10:50:33"
+        in result.stdout
+    )
+    assert (
+        "secondary timestamp is 2.00000s after the previous packets (more than 1.0001s). line number 4, sequence count: 1"
         in result.stdout
     )
     assert result.exit_code == 2
