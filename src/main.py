@@ -3,7 +3,7 @@
 import datetime
 from typing import Annotated, Optional
 
-import pkg_resources
+import importlib_resources
 import typer
 
 import check_gaps
@@ -23,10 +23,10 @@ def countdown():
 def version_callback(value: bool):
     if value:
         try:
-            version = pkg_resources.get_distribution("mag").version
+            version = importlib_resources.get_distribution("mag").version
             print(f"MAG CLI Version {version}")
 
-        except pkg_resources.DistributionNotFound:
+        except importlib_resources.DistributionNotFound:
             print("MAG CLI Version unknown, not installed via pip.")
 
         raise typer.Exit()
