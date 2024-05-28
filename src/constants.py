@@ -1,3 +1,6 @@
+import re
+
+
 class CONSTANTS:
     TOO_MANY_ROWS = "Packet has too many rows"
     VECTORS_ALL_ZERO = "Vectors are all zero"
@@ -10,3 +13,9 @@ class CONSTANTS:
     VECTORS_NON_EMPTY = "Vectors are non-empty"
     PACKET_TOO_BIG = "packet is too big"
     TIMESTAMP = "timestamp"
+    DEFAULT_TIME_TOLERANCE_BETWEEN_PACKETS = 0.00059  # 7.5% of the vector cadence (req is 10%), so (1/128) * 0.075 = 0.0005859375s
+    DEFAULT_TIME_TOLERANCE_BETWEEN_PACKETS_IALIRT = 0.05
+    MAG_SCIENCE_FILE_NAMES_V2_REGEX = re.compile(
+        r"MAG\w+-(\w+)-\(([0-9]+),([0-9]+)\)-([0-9]+)s-\w+-\w+",
+        re.IGNORECASE | re.MULTILINE,
+    )
