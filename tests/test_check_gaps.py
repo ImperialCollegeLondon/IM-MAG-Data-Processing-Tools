@@ -380,9 +380,29 @@ def test_check_gap_finds_one_error_for_single_zero_vector_like_ramp_mode_in_vali
     print(result.stdout)
     assert result.exit_code != 0
     assert (
-        "Checking sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50-single-zero-vector.csv in mode auto (2, 2) @ 1s\n"
-        + "Vectors are all zero for primary on line number 3, sequence count: 0\n"
+        "Checking sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50-single-zero-vector.csv in mode auto (2, 2) @ 1s"
+        in result.stdout
+    )
+    assert (
+        "Vectors are all zero for primary on line number 3, sequence count: 0\n"
         + "Error - found bad science data! Checked 2 packet(s) across 4 rows of data."
+        in result.stdout
+    )
+
+
+def test_check_gap_includes_tolerence_in_welcome_summary():
+    result = runner.invoke(
+        app,
+        command_start_params
+        + [
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-normal-(2,2)-1s-20230922-11h50-single-zero-vector.csv"
+        ],
+    )
+
+    print(result.stdout)
+
+    assert (
+        "Checking sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50-single-zero-vector.csv in mode auto (2, 2) @ 1s with tolerence 0.00059s\n"
         in result.stdout
     )
 
@@ -468,11 +488,11 @@ def test_check_gap_uses_non_default_tolerance_in_messages():
     print(result.stdout)
     assert result.exit_code != 0
     assert (
-        "primary timestamp is 2.00000s after the previous packets (more than 1.0001s). line number 4, sequence count: 1, SCLK: 2023-09-22 10:50:33"
+        "primary timestamp is 2.00000s after the previous packets (more than 1.00010s). line number 4, sequence count: 1, SCLK: 2023-09-22 10:50:33"
         in result.stdout
     )
     assert (
-        "secondary timestamp is 2.00000s after the previous packets (more than 1.0001s). line number 4, sequence count: 1"
+        "secondary timestamp is 2.00000s after the previous packets (more than 1.00010s). line number 4, sequence count: 1"
         in result.stdout
     )
     assert result.exit_code == 2
@@ -584,3 +604,25 @@ def test_check_gap_generates_correct_summary_file_with_all_passed():
     assert json_object["Gap check result"] == "PASSED"
     assert "_gap-report.txt" in json_object["Passed"][0]
     assert json_object["Failed"] == []
+
+
+def test_check_gap_uses_ialirt_default_tolerance_when_file_named_ialirt():
+    result = runner.invoke(
+        app,
+        command_start_params
+        + [
+            f"{SAMPLE_DATA_FOLDER}/MAGScience-IALiRT-20240214-15h02-large-tolerance.csv",
+        ],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert (
+        "primary timestamp is 4.051s after the previous packets (more than 4.050s). line number 3, sequence count: 4, SCLK: 2024-02-14 15:02:11"
+        in result.stdout
+    )
+    assert (
+        "secondary timestamp is 4.051s after the previous packets (more than 4.050s). line number 3, sequence count: 4"
+        in result.stdout
+    )
+    assert result.exit_code == 2

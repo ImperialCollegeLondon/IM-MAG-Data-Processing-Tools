@@ -10,7 +10,7 @@ from typing import Optional
 import typer
 
 from constants import CONSTANTS
-from science_mode import Constants, Mode, ModeConfig
+from science_mode import Mode, ModeConfig
 
 app = typer.Typer()
 
@@ -19,7 +19,7 @@ no_report_flag = False
 exit_code = 0
 MIN_FINE = 0
 MAX_FINE = 0x0000FFFF  # max 16bit number, the largest fine time value in a packet. Fine time is 24 bits but we only telemeter the top 16
-DEFAULT_TIME_TOLERANCE_BETWEEN_PACKETS = 0.00059  # 7.5% of the vector cadence (req is 10%), so (1/128) * 0.075 = 0.0005859375s
+
 IMAP_EPOCH = datetime(2010, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
 
@@ -60,9 +60,9 @@ def main(
         help="Skip the gap checking and just generate the summary files",
     ),
     tolerance: float = typer.Option(
-        DEFAULT_TIME_TOLERANCE_BETWEEN_PACKETS,
+        -1,
         "--tolerance",
-        help="The tolerance in seconds for the time between packets. Defaults to 7.5% of the vector cadence",
+        help="The tolerance in seconds for the time between packets. Defaults to 7.5% of the vector cadence in science mode, and 0.05s for I-ALiRT mode.",
     ),
 ):
     """
@@ -95,9 +95,9 @@ def main(
         reader = csv.DictReader(data_file)
 
         if mode != Mode.auto:
-            mode_config = ModeConfig(mode)
+            mode_config = ModeConfig(mode, tolerance)
         else:
-            mode_config = ModeConfig(data_file.name)
+            mode_config = ModeConfig(data_file.name, tolerance)
 
         exit_code = 0
         line_count = 0
@@ -109,7 +109,7 @@ def main(
         secondary_vector_count = 0
 
         write_line(
-            f"Checking {data_file.name} in mode {mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s"
+            f"Checking {data_file.name} in mode {mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s with tolerence {mode_config.tolerance}s"
         )
 
         for row in reader:
@@ -164,7 +164,6 @@ def main(
                         pri_coarse,
                         pri_fine,
                         "primary",
-                        tolerance,
                     )
                     if is_non_empty_vector(row, line_count, sequence, "primary"):
                         primary_vector_count += 1
@@ -185,7 +184,6 @@ def main(
                         sec_coarse,
                         sec_fine,
                         "secondary",
-                        tolerance,
                     )
 
                     if is_non_empty_vector(row, line_count, sequence, "secondary"):
@@ -283,7 +281,7 @@ def validate_check_gap_args(
         print("data_file name is empty or invalid")
         raise typer.Abort()
 
-    match = Constants.magScienceFileNamev2Regex.search(data_file.name)
+    match = CONSTANTS.MAG_SCIENCE_FILE_NAMES_V2_REGEX.search(data_file.name)
 
     # files in v1 format will not match the regex so guess mode from file name
     if not match and mode == Mode.auto:
@@ -335,7 +333,6 @@ def verify_timestamp(
     coarse: int,
     fine: int,
     timestamp_type: str,
-    tolerance: float,
 ):
     sclk = (IMAP_EPOCH + timedelta(seconds=coarse)).strftime("%Y-%m-%d %H:%M:%S")
     line_id = f"line number {line_count + 1}, sequence count: {sequence}, SCLK: {sclk}"
@@ -351,16 +348,30 @@ def verify_timestamp(
     gap_between_packets = time - prev_time
 
     if line_count > 1 and packet_line_count == 1:
-        lower_limit = mode_config.seconds_between_packets - tolerance
-        upper_limit = mode_config.seconds_between_packets + tolerance
+        lower_limit = mode_config.seconds_between_packets - mode_config.tolerance
+        upper_limit = mode_config.seconds_between_packets + mode_config.tolerance
 
         if gap_between_packets < lower_limit:
             write_error(
-                f"{timestamp_type} {CONSTANTS.TIMESTAMP} is {gap_between_packets:.5f}s after the previous packets (less than {lower_limit}s). {line_id}"
+                "{0} {1} is {2:{3}}s after the previous packets (less than {4:{3}}s). {5}".format(
+                    timestamp_type,
+                    CONSTANTS.TIMESTAMP,
+                    gap_between_packets,
+                    mode_config.time_delta_format,
+                    lower_limit,
+                    line_id,
+                )
             )
         if gap_between_packets > upper_limit:
             write_error(
-                f"{timestamp_type} {CONSTANTS.TIMESTAMP} is {gap_between_packets:.5f}s after the previous packets (more than {upper_limit}s). {line_id}"
+                "{0} {1} is {2:{3}}s after the previous packets (more than {4:{3}}s). {5}".format(
+                    timestamp_type,
+                    CONSTANTS.TIMESTAMP,
+                    gap_between_packets,
+                    mode_config.time_delta_format,
+                    upper_limit,
+                    line_id,
+                )
             )
 
     elif line_count > 0 and packet_line_count > 1:
