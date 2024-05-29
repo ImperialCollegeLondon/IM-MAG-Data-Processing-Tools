@@ -429,7 +429,7 @@ def test_check_gap_includes_tolerence_in_welcome_summary():
     print(result.stdout)
 
     assert (
-        "Checking sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50-single-zero-vector.csv in mode auto (2, 2) @ 1s with tolerence 0.00059s\n"
+        "Checking sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50-single-zero-vector.csv in mode auto (2, 2) @ 1s with tolerance 0.00059s\n"
         in result.stdout
     )
 

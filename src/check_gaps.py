@@ -151,7 +151,7 @@ def check_gaps_in_one_file(
         secondary_vector_count = 0
 
         write_line(
-            f"Checking {data_file} in mode {mode_config.mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s with tolerence {mode_config.tolerance}s"
+            f"Checking {data_file} in mode {mode_config.mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s with tolerance {mode_config.tolerance}s"
         )
 
         for row in reader:
