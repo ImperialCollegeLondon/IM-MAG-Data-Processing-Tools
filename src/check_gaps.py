@@ -274,7 +274,9 @@ def check_gaps_multi_file(
     tolerance,
 ):
     multifile_exit_code = 0
+    files = 0
     for filename in glob.glob(globPath):
+        files += 1
         try:
             result = ctx.invoke(
                 main,
@@ -288,7 +290,7 @@ def check_gaps_multi_file(
                 summarise_only=summarise_only,
                 tolerance=tolerance,
             )
-            if result.exit_code != 0:
+            if result and result.exit_code != 0:
                 multifile_exit_code = result.exit_code
         except Exit as exit:
             multifile_exit_code = exit.exit_code
@@ -299,6 +301,10 @@ def check_gaps_multi_file(
 
         print("")  # new line between files
 
+    if files == 0:
+        multifile_exit_code = 1
+
+    print(f"Processed {files} files matching {globPath}")
     raise typer.Exit(code=multifile_exit_code)
 
 
