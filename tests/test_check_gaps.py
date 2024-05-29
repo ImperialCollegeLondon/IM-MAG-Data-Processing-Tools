@@ -2,6 +2,7 @@
 """Tests for `check-gaps`."""
 # pylint: disable=redefined-outer-name
 
+import glob
 import json
 import os
 from pathlib import Path
@@ -53,13 +54,22 @@ def run_around_tests():
         f"{SAMPLE_DATA_FOLDER}/example.csv",
     ]
 
-    if report_file.exists():
-        os.remove(report_file.absolute())
+    removeGeneratedFiles()
 
     yield
 
+    removeGeneratedFiles()
+
+
+def removeGeneratedFiles():
     if report_file.exists():
         os.remove(report_file.absolute())
+
+    for txt in glob.glob(f"{SAMPLE_DATA_FOLDER}/sample-folder/*.txt"):
+        os.remove(txt)
+
+    for jsonfile in glob.glob(f"{SAMPLE_DATA_FOLDER}/sample-folder/*.json"):
+        os.remove(jsonfile)
 
     json = Path(f"{SAMPLE_DATA_FOLDER}/gap_check_summary.json")
     if json.exists():
@@ -72,6 +82,23 @@ def test_check_gap_creates_report():
     print(result.stdout)
     assert result.exit_code == 0
     assert os.path.exists(report_file.absolute())
+
+
+def test_check_gap_on_missing_file_errors():
+    result = runner.invoke(
+        app,
+        [
+            "check-gap",
+            "--no-report",
+            "--mode",
+            "BurstE128",
+            f"{SAMPLE_DATA_FOLDER}/NOT_VALID_PATH_example.csv",
+        ],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert "sample-data/NOT_VALID_PATH_example.csv does not exist" in result.stdout
 
 
 def test_check_gap_creates_report_name_based_on_a_suffix():
@@ -626,3 +653,33 @@ def test_check_gap_uses_ialirt_default_tolerance_when_file_named_ialirt():
         in result.stdout
     )
     assert result.exit_code == 2
+
+
+def test_check_gap_will_process_three_files_in_a_folder():
+    result = runner.invoke(
+        app,
+        ["check-gap"] + [f"{SAMPLE_DATA_FOLDER}/sample-folder"],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert "MAGScience-IALiRT-20240214-15h02.csv" in result.stdout
+    assert "MAGScience-normal-(2,1)-1s-20230922-11h50.csv" in result.stdout
+    assert (
+        "MAGScience-normal-(2,1)-1s-20230922-11h50-bad-time-course.csv" in result.stdout
+    )
+
+
+def test_check_gap_will_process_glob_paths():
+    result = runner.invoke(
+        app,
+        ["check-gap"] + [f"{SAMPLE_DATA_FOLDER}/sample-*/*normal*.csv"],
+    )
+
+    print(result.stdout)
+    assert result.exit_code != 0
+    assert "MAGScience-IALiRT-20240214-15h02.csv" not in result.stdout
+    assert "MAGScience-normal-(2,1)-1s-20230922-11h50.csv" in result.stdout
+    assert (
+        "MAGScience-normal-(2,1)-1s-20230922-11h50-bad-time-course.csv" in result.stdout
+    )

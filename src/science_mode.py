@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 import re
 from enum import Enum
 
@@ -25,7 +26,7 @@ class ModeConfig:
     sequence_counter_increment = 1
     time_delta_format = ".5f"
 
-    def __init__(self, modeOrFileName: Mode | str, tolerance: float):
+    def __init__(self, modeOrFileName: Mode | Path, tolerance: float):
 
         self.tolerance = tolerance
 
@@ -64,7 +65,9 @@ class ModeConfig:
             # use regex to parse data_file like
             #    MAGScience-normal-(2,2)-8s-20230922-11h50.csv
             #    MAGScience-burst-(128,128)-2s-20230922-11h50.csv
-            match = CONSTANTS.MAG_SCIENCE_FILE_NAMES_V2_REGEX.search(modeOrFileName)
+            match = CONSTANTS.MAG_SCIENCE_FILE_NAMES_V2_REGEX.search(
+                str(modeOrFileName)
+            )
             if not match:
                 raise Exception("Unable to parse mode from file name")
 

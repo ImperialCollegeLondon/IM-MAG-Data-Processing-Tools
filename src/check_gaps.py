@@ -1,4 +1,5 @@
 import csv
+import glob
 import json
 import os
 import re
@@ -7,6 +8,8 @@ from io import TextIOWrapper
 from pathlib import Path
 from typing import Optional
 
+from click.exceptions import Exit
+from click.testing import CliRunner
 import typer
 
 from constants import CONSTANTS
@@ -27,9 +30,10 @@ IMAP_EPOCH = datetime(2010, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
     invoke_without_command=True
 )  # use callback because we want this to be the default command
 def main(
-    data_file: typer.FileText = typer.Argument(
+    ctx: typer.Context,
+    data_file: Path = typer.Argument(
         ...,
-        help="file path to the csv file to be scanned e.g burst_data20230112-11h23.csv",
+        help="file path to the csv file to be scanned e.g burst_data20230112-11h23.csv or folder containing csv files",
     ),
     report_file_path: Optional[Path] = typer.Option(
         "",
@@ -75,9 +79,30 @@ def main(
     report_file = None
     no_report_flag = False
     exit_code = 0
+    globPath = None
+
+    if data_file.is_dir():
+        globPath = os.path.join(data_file, "*.csv")
+    elif "*" in str(data_file) or "?" in str(data_file):
+        globPath = str(data_file)
+
+    if globPath:
+        checkGapsMultiFile(
+            globPath,
+            ctx,
+            report_file_path,
+            mode,
+            force,
+            no_report,
+            report_file_suffix,
+            summarise_only,
+            tolerance,
+        )
 
     if not no_report and not report_file_path.name:
-        report_file_path = Path(f"{data_file.name.rstrip('.csv')}{report_file_suffix}")
+        report_file_path = Path(
+            f"{data_file.with_suffix('').resolve()}{report_file_suffix}"
+        )
     # if the reportname has been specified and no suffix has been specified then use the report file name as the suffix
     elif report_file_suffix == ".gap_report.txt":
         report_file_suffix = report_file_path.name
@@ -92,108 +117,115 @@ def main(
         else:
             no_report_flag = no_report
 
-        reader = csv.DictReader(data_file)
+        with open(data_file) as f:
+            reader = csv.DictReader(f)
 
-        if mode != Mode.auto:
-            mode_config = ModeConfig(mode, tolerance)
-        else:
-            mode_config = ModeConfig(data_file.name, tolerance)
+            if mode != Mode.auto:
+                mode_config = ModeConfig(mode, tolerance)
+            else:
+                mode_config = ModeConfig(data_file, tolerance)
 
-        exit_code = 0
-        line_count = 0
-        packet_start_line_count = 0
-        packet_line_count = 0
-        packet_counter = 0
-        prev_seq = -1
-        primary_vector_count = 0
-        secondary_vector_count = 0
+            exit_code = 0
+            line_count = 0
+            packet_start_line_count = 0
+            packet_line_count = 0
+            packet_counter = 0
+            prev_seq = -1
+            primary_vector_count = 0
+            secondary_vector_count = 0
 
-        write_line(
-            f"Checking {data_file.name} in mode {mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s with tolerence {mode_config.tolerance}s"
-        )
-
-        for row in reader:
-            packet_line_count += 1
-            line_count += 1
-
-            sequence = get_integer(line_count, row, "sequence")
-
-            if line_count == 1 and packet_counter == 0:
-                # we have our first packet
-                packet_counter += 1
-                packet_start_line_count += 1
-
-            # if the seq count has moved we assume this is the start of a new packet
-            if line_count > 1 and sequence != prev_seq:
-                # check the previous packet has a complete set of vectors
-                verify_packet_completeness(
-                    primary_vector_count,
-                    secondary_vector_count,
-                    mode_config,
-                    prev_seq,
-                    packet_start_line_count,
-                    False,
-                )
-                packet_counter += 1
-                packet_start_line_count = line_count
-                primary_vector_count = 0
-                secondary_vector_count = 0
-
-            packet_line_count = verify_sequence_counter(
-                mode_config, line_count, packet_line_count, prev_seq, sequence
+            write_line(
+                f"Checking {data_file} in mode {mode.value} ({mode_config.primary_rate}, {mode_config.secondary_rate}) @ {mode_config.seconds_between_packets}s with tolerence {mode_config.tolerance}s"
             )
 
-            hasPrimary = packet_line_count <= mode_config.primary_vectors_per_packet
-            hasSeconday = packet_line_count <= mode_config.secondary_vectors_per_packet
+            for row in reader:
+                packet_line_count += 1
+                line_count += 1
 
-            if packet_line_count > mode_config.rows_per_packet:
-                if packet_line_count == mode_config.rows_per_packet + 1:
-                    write_error(
-                        f"{CONSTANTS.TOO_MANY_ROWS}. Expected {mode_config.rows_per_packet}. line number {line_count + 1}, sequence count: {sequence}"
-                    )
-            else:
-                if hasPrimary:
-                    pri_coarse = get_integer(line_count, row, "pri_coarse")
-                    pri_fine = get_integer(line_count, row, "pri_fine")
+                sequence = get_integer(line_count, row, "sequence")
 
-                    verify_timestamp(
+                if line_count == 1 and packet_counter == 0:
+                    # we have our first packet
+                    packet_counter += 1
+                    packet_start_line_count += 1
+
+                # if the seq count has moved we assume this is the start of a new packet
+                if line_count > 1 and sequence != prev_seq:
+                    # check the previous packet has a complete set of vectors
+                    verify_packet_completeness(
+                        primary_vector_count,
+                        secondary_vector_count,
                         mode_config,
-                        line_count,
-                        packet_line_count,
-                        sequence,
-                        pri_coarse,
-                        pri_fine,
-                        "primary",
+                        prev_seq,
+                        packet_start_line_count,
+                        False,
                     )
-                    if is_non_empty_vector(row, line_count, sequence, "primary"):
-                        primary_vector_count += 1
-                        verify_non_zero_vectors(row, line_count, sequence, "primary")
+                    packet_counter += 1
+                    packet_start_line_count = line_count
+                    primary_vector_count = 0
+                    secondary_vector_count = 0
 
+                packet_line_count = verify_sequence_counter(
+                    mode_config, line_count, packet_line_count, prev_seq, sequence
+                )
+
+                hasPrimary = packet_line_count <= mode_config.primary_vectors_per_packet
+                hasSeconday = (
+                    packet_line_count <= mode_config.secondary_vectors_per_packet
+                )
+
+                if packet_line_count > mode_config.rows_per_packet:
+                    if packet_line_count == mode_config.rows_per_packet + 1:
+                        write_error(
+                            f"{CONSTANTS.TOO_MANY_ROWS}. Expected {mode_config.rows_per_packet}. line number {line_count + 1}, sequence count: {sequence}"
+                        )
                 else:
-                    verify_empty_vectors(row, line_count, sequence, "primary")
+                    if hasPrimary:
+                        pri_coarse = get_integer(line_count, row, "pri_coarse")
+                        pri_fine = get_integer(line_count, row, "pri_fine")
 
-                if hasSeconday:
-                    sec_coarse = get_integer(line_count, row, "sec_coarse")
-                    sec_fine = get_integer(line_count, row, "sec_fine")
+                        verify_timestamp(
+                            mode_config,
+                            line_count,
+                            packet_line_count,
+                            sequence,
+                            pri_coarse,
+                            pri_fine,
+                            "primary",
+                        )
+                        if is_non_empty_vector(row, line_count, sequence, "primary"):
+                            primary_vector_count += 1
+                            verify_non_zero_vectors(
+                                row, line_count, sequence, "primary"
+                            )
 
-                    verify_timestamp(
-                        mode_config,
-                        line_count,
-                        packet_line_count,
-                        sequence,
-                        sec_coarse,
-                        sec_fine,
-                        "secondary",
-                    )
+                    else:
+                        verify_empty_vectors(row, line_count, sequence, "primary")
 
-                    if is_non_empty_vector(row, line_count, sequence, "secondary"):
-                        secondary_vector_count += 1
-                        verify_non_zero_vectors(row, line_count, sequence, "secondary")
+                    if hasSeconday:
+                        sec_coarse = get_integer(line_count, row, "sec_coarse")
+                        sec_fine = get_integer(line_count, row, "sec_fine")
 
-                else:
-                    verify_empty_vectors(row, line_count, sequence, "secondary")
+                        verify_timestamp(
+                            mode_config,
+                            line_count,
+                            packet_line_count,
+                            sequence,
+                            sec_coarse,
+                            sec_fine,
+                            "secondary",
+                        )
 
-            prev_seq = sequence
+                        if is_non_empty_vector(row, line_count, sequence, "secondary"):
+                            secondary_vector_count += 1
+                            verify_non_zero_vectors(
+                                row, line_count, sequence, "secondary"
+                            )
+
+                    else:
+                        verify_empty_vectors(row, line_count, sequence, "secondary")
+
+                prev_seq = sequence
 
         # check the last packet has a complete set of vectors
         complete_gap_check(
@@ -211,11 +243,50 @@ def main(
 
     if not no_report:
         # generate a nice summary of all the errors by scanning all gap reports in the folder
-        folder = Path(data_file.name).parent
+        folder = data_file.parent
         generate_summary(folder, f"*{report_file_suffix}")
 
     if exit_code != 0:
         raise typer.Exit(code=exit_code)
+
+
+def checkGapsMultiFile(
+    globPath,
+    ctx,
+    report_file_path,
+    mode,
+    force,
+    no_report,
+    report_file_suffix,
+    summarise_only,
+    tolerance,
+):
+    multifile_exit_code = 0
+    for filename in glob.glob(globPath):
+        try:
+            result = ctx.invoke(
+                main,
+                data_file=Path(filename),
+                ctx=ctx,
+                report_file_path=report_file_path,
+                mode=mode,
+                force=force,
+                no_report=no_report,
+                report_file_suffix=report_file_suffix,
+                summarise_only=summarise_only,
+                tolerance=tolerance,
+            )
+            if result.exit_code != 0:
+                multifile_exit_code = result.exit_code
+        except Exit as exit:
+            multifile_exit_code = exit.exit_code
+        except Exception:
+            if multifile_exit_code == 0:
+                multifile_exit_code = 1
+
+        print("")
+
+    raise typer.Exit(code=multifile_exit_code)
 
 
 def complete_gap_check(
@@ -266,8 +337,12 @@ def get_integer(line_count, row, field):
 
 
 def validate_check_gap_args(
-    data_file, report_file_path, mode, force, no_report, summarise_only
+    data_file: Path, report_file_path, mode, force, no_report, summarise_only
 ):
+    if not data_file.exists():
+        print(f"{data_file} does not exist")
+        raise typer.Abort()
+
     if not (no_report) and report_file_path.exists() and not summarise_only:
         if force:
             os.remove(report_file_path)
