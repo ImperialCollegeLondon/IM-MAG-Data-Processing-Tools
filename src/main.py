@@ -1,9 +1,9 @@
 """Main module."""
 
 import datetime
+from importlib.metadata import PackageNotFoundError, version
 from typing import Annotated, Optional
 
-import importlib_resources
 import typer
 
 import check_gaps
@@ -23,10 +23,10 @@ def countdown():
 def version_callback(value: bool):
     if value:
         try:
-            version = importlib_resources.get_distribution("mag").version
-            print(f"MAG CLI Version {version}")
+            versionString = version("mag")
+            print(f"MAG CLI Version {versionString}")
 
-        except importlib_resources.DistributionNotFound:
+        except PackageNotFoundError:
             print("MAG CLI Version unknown, not installed via pip.")
 
         raise typer.Exit()
