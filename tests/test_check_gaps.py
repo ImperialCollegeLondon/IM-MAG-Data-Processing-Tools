@@ -683,3 +683,35 @@ def test_check_gap_will_process_glob_paths():
     assert (
         "MAGScience-normal-(2,1)-1s-20230922-11h50-bad-time-course.csv" in result.stdout
     )
+
+
+def test_check_gap_will_process_glob_paths_without_errors():
+    result = runner.invoke(
+        app,
+        ["check-gap"] + [f"{SAMPLE_DATA_FOLDER}/sample-folder/MAGScience-IALiRT*"],
+    )
+
+    print(result.stdout)
+    assert result.exit_code == 0
+    assert "MAGScience-IALiRT-20240214-15h02.csv" in result.stdout
+    assert "Gap check passed" in result.stdout
+    assert (
+        "Error processing sample-data/sample-folder/MAGScience-IALiRT-20240214-15h02.csv"
+        not in result.stdout
+    )
+    assert "Processed 1 files matching sample-data/sample-folder" in result.stdout
+
+
+def test_check_gap_will_return_non_zero_if_no_files_match():
+    result = runner.invoke(
+        app,
+        ["check-gap"] + [f"{SAMPLE_DATA_FOLDER}/sample-folder/NOT_A_FILE*"],
+    )
+
+    print(result.stdout)
+    assert result.exit_code == 1
+    assert "Gap check passed" not in result.stdout
+    assert (
+        "Processed 0 files matching sample-data/sample-folder/NOT_A_FILE*"
+        in result.stdout
+    )
