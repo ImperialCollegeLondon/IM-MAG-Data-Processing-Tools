@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timezone
 
 
 class CONSTANTS:
@@ -19,3 +20,4 @@ class CONSTANTS:
         r"MAG\w+-(\w+)-\(([0-9]+),([0-9]+)\)-([0-9]+)s-\w+-\w+",
         re.IGNORECASE | re.MULTILINE,
     )
+    IMAP_EPOCH = datetime(2010, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)

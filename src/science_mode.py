@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
 import re
 from enum import Enum
+from pathlib import Path
 
 from src.constants import CONSTANTS
 
@@ -31,6 +31,7 @@ class ModeConfig:
         self.tolerance = tolerance
 
         if isinstance(modeOrFileName, Mode):
+            self.mode = modeOrFileName
             if modeOrFileName == Mode.normalE8:
                 self.primary_rate = 8
                 self.secondary_rate = 8
@@ -74,6 +75,7 @@ class ModeConfig:
             self.primary_rate = int(match.group(2))
             self.secondary_rate = int(match.group(3))
             self.seconds_between_packets = int(match.group(4))
+            self.mode = Mode.auto
 
         if self.tolerance == -1:
             self.tolerance = CONSTANTS.DEFAULT_TIME_TOLERANCE_BETWEEN_PACKETS
