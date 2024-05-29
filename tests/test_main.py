@@ -23,3 +23,9 @@ def test_app_counts_down():
     result = runner.invoke(app, ["countdown"])
     assert result.exit_code == 0
     assert "IMAP launch is " in result.stdout
+
+
+def test_app_reports_version():
+    result = runner.invoke(app, ["--version"])
+    assert result.exit_code == 0
+    assert "MAG CLI Version " in result.stdout
