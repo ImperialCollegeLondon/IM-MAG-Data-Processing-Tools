@@ -1,4 +1,3 @@
-import csv
 import glob
 import io
 import os
@@ -9,15 +8,12 @@ from io import TextIOWrapper
 from pathlib import Path
 from typing import List, Optional
 
-import rich
-from rich.progress import Progress, track
-import typer
-from click.exceptions import Exit
-
 import ccsdspy
-from ccsdspy import *
+import typer
+from ccsdspy import PacketField
 from ccsdspy.utils import iter_packet_bytes
-
+from click.exceptions import Exit
+from rich.progress import Progress, track
 
 app = typer.Typer()
 
@@ -56,16 +52,16 @@ def split_packets(
         "--limit",
         help="Limit the number of packets to process",
     ),
-    apids:Optional[List[str]] = typer.Option(
+    apids: Optional[List[str]] = typer.Option(
         (),
         "--apid",
-        help="Restrict the results to packets with one or more specificied ApIDs. Defaults to all ApIDs."
+        help="Restrict the results to packets with one or more specificied ApIDs. Defaults to all ApIDs.",
     ),
     mag_only: bool = typer.Option(
         True,
         "--mag-only/--all",
         help="mag-only = only process MAG packets and ignore ApIDs outside of the MAG range, all = process all packets inc spacecraft and other instruments",
-    )
+    ),
 ):
     """
     Check MAG science CSV files for gaps in sequence counters and time stamps
@@ -88,7 +84,7 @@ def split_packets(
         if report_file_path.is_dir()
         else report_file_path
     )
-    
+
     if globPath:
         process_multi_file(
             globPath,
@@ -102,10 +98,8 @@ def split_packets(
         )
         return
 
-    
-
     validate_parse_packets_args(
-        packets_files, report_file_path, no_report, summarise_only,limit,apids
+        packets_files, report_file_path, no_report, summarise_only, limit, apids
     )
 
     if not no_report:
@@ -114,9 +108,23 @@ def split_packets(
             headers = True
         report_file = open(report_file_path, "a")
         if headers:
-            report_file.write(
-                "APID,Sequence Count,Length,SCLK\n")
+            report_file.write("APID,Sequence Count,Length,SCLK\n")
 
+    filter_to_apids = parse_apids(apids)
+
+    parse_packets_in_one_file(
+        packets_files, no_report, limit, mag_only, filter_to_apids, summarise_only
+    )
+
+    if not no_report and not is_multi_file:
+        report_file.close()
+        print(f"Packet summary saved to {report_file_path}")
+
+    if exit_code != 0:
+        raise typer.Exit(code=exit_code)
+
+
+def parse_apids(apids):
     filter_to_apids = []
     if apids:
         for apid in apids:
@@ -125,15 +133,7 @@ def split_packets(
                 filter_to_apids.append(int(apid, 10))
             else:
                 filter_to_apids.append(int(apid, 16))
-    
-    parse_packets_in_one_file(packets_files, no_report, limit, mag_only, filter_to_apids,summarise_only)
-
-    if not no_report and not is_multi_file:
-        report_file.close()
-        print(f"Packet summary saved to {report_file_path}")
-
-    if exit_code != 0:
-        raise typer.Exit(code=exit_code)
+    return filter_to_apids
 
 
 def parse_packets_in_one_file(
@@ -146,14 +146,13 @@ def parse_packets_in_one_file(
 ):
     global exit_code
     global packet_counter
+    global report_file
 
-    pktDefinition = ccsdspy.FixedLength([
-      PacketField(
-           name='SHCOARSE',
-           data_type='uint',
-           bit_length=32
-      ),
-    ])
+    pktDefinition = ccsdspy.FixedLength(
+        [
+            PacketField(name="SHCOARSE", data_type="uint", bit_length=32),
+        ]
+    )
 
     if limit != 0 and packet_counter >= limit:
         return
@@ -163,14 +162,12 @@ def parse_packets_in_one_file(
         task1 = progress.add_task(f"Processing {packet_file}", total=size)
         for packet_bytes in iter_packet_bytes(packet_file, include_primary_header=True):
             progress.update(task1, advance=len(packet_bytes))
-            
-            tempFileName = packet_file.parent / "temp.bin"
 
             fileLikeObject = io.BytesIO(packet_bytes)
-            
             pkt = pktDefinition.load(fileLikeObject, include_primary_header=True)
-            apid = pkt['CCSDS_APID'][0]
+            apid = pkt["CCSDS_APID"][0]
 
+            # check the packet shopuld not be filtered out
             if mag_only:
                 if apid < APID_MAG_START or apid > APID_MAG_END:
                     continue
@@ -179,17 +176,22 @@ def parse_packets_in_one_file(
                 if apid not in apid_filter:
                     continue
 
+            # Save the single packet to it's own .bin file?
             if not summarise_only:
-                tempFileName = packet_file.parent / str(apid) / f"{pkt['SHCOARSE'][0]}-{pkt['CCSDS_SEQUENCE_COUNT'][0]}.bin"
+                newFileName = (
+                    packet_file.parent
+                    / str(apid)
+                    / f"{pkt['SHCOARSE'][0]}-{pkt['CCSDS_SEQUENCE_COUNT'][0]}.bin"
+                )
 
-                if tempFileName.exists():
-                    print(f"Existing packet found: {tempFileName} - skipped it")
+                if newFileName.exists():
+                    print(f"Existing packet found: {newFileName} - skipped it")
                     exit_code = 1
                 else:
-                    if not tempFileName.parent.exists():
-                        tempFileName.parent.mkdir(parents=True)
+                    if not newFileName.parent.exists():
+                        newFileName.parent.mkdir(parents=True)
 
-                    with open(tempFileName, "wb") as f:
+                    with open(newFileName, "wb") as f:
                         f.write(packet_bytes)
                         packet_counter += 1
 
@@ -203,10 +205,14 @@ def parse_packets_in_one_file(
                 break
 
     if not summarise_only:
-        print(f"Saved {packet_counter} packets from {packet_file} to {packet_file.parent} ({size} bytes)")
+        print(
+            f"Saved {packet_counter} packets from {packet_file} to {packet_file.parent} ({size} bytes)"
+        )
 
 
-def process_multi_file(globPath, ctx, report_file_path, no_report, summarise_only,limit, apids, mag_only):
+def process_multi_file(
+    globPath, ctx, report_file_path, no_report, summarise_only, limit, apids, mag_only
+):
     multifile_exit_code = 0
     files = 0
     global is_multi_file
@@ -223,7 +229,7 @@ def process_multi_file(globPath, ctx, report_file_path, no_report, summarise_onl
                 summarise_only=summarise_only,
                 limit=limit,
                 apids=apids,
-                mag_only=mag_only
+                mag_only=mag_only,
             )
             if result and result.exit_code != 0:
                 multifile_exit_code = result.exit_code
@@ -242,12 +248,17 @@ def process_multi_file(globPath, ctx, report_file_path, no_report, summarise_onl
     if not no_report:
         print(f"Packet summary saved to {report_file_path}")
 
-    if(multifile_exit_code != 0):
+    if multifile_exit_code != 0:
         raise typer.Exit(code=multifile_exit_code)
 
 
 def validate_parse_packets_args(
-    data_file: Path, report_file_path, no_report, summarise_only, limit:int,apids:List[str]
+    data_file: Path,
+    report_file_path,
+    no_report,
+    summarise_only,
+    limit: int,
+    apids: List[str],
 ):
     if not data_file.exists():
         print(f"{data_file} does not exist")
@@ -259,11 +270,11 @@ def validate_parse_packets_args(
     if not data_file.name:
         print("data_file name is empty or invalid")
         raise typer.Abort()
-    
+
     if limit < 0:
         print("limit must be a positive integer")
         raise typer.Abort()
-    
+
     if apids:
         for apid in apids:
             # ensure it is an int or an int in hex format
