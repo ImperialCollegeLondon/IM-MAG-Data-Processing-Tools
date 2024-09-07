@@ -6,12 +6,13 @@
     "configurations": [
         {
             "name": "Python: Current File",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/main.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["check-gap","-f", "-m", "BurstE128", "sample-data/burst_data20230112-11h23.csv"]
+            //"args": ["check-gap","-f", "-m", "BurstE128", "sample-data/burst_data20230112-11h23.csv"]
+            "args":["split-packets", "--limit", "10" ,"--summarise", "--apid", "0x3e9", "tests/data/1001/*.bin"]
         }
     ]
 }
