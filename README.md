@@ -9,6 +9,10 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 - `mag check-gap sample-data/**.*.csv` - Use glob to match files and then check gaps in each in turn. Will generate a summary report for all files.
 - `mag check-gap --mode normalE8 folder/burst_data20230112-11h23-bad-time-fine.csv` - list all gaps in timestamps and sequence counters in science data csv file and forces the mode to be normalE8
 - `mag check-gap --no-report sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50.csv` - list all gaps but skip report generation
+- `mag split-packets --limit 100 data/file.bin` - split the first 100 MAG packets in file.bin into individual files in folders based on apid
+- `mag split-packets --limit 100 --all data/file.bin` - split the first 100 packets (spacecraft, mag, other instruments) in file.bin into individual files in folders based on apid
+- `mag split-packets --apid 1000 --apid 1001 data/*.bin` - extract all packets with apids 1000 and 1001 from all files in data/*.bin and save them into folders based on apid
+- `mag split-packets --summarise --apid 0x3e9 --report packets.csv "tests/data/1001/*.bin` - create a packets.csv file with a summary of all packets with apid 1001 in files matching data/*.bin
 
 ## Mag cli `USERS` Quick Start
 

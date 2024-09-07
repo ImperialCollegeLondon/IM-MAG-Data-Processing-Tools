@@ -7,10 +7,12 @@ from typing import Annotated, Optional
 import typer
 
 import check_gaps
+import split_packets
 
 app = typer.Typer()
 
 app.add_typer(check_gaps.app, name="check-gap")
+app.add_typer(split_packets.app, name="split-packets")
 
 
 @app.command()
