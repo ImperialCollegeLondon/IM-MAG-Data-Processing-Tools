@@ -278,7 +278,7 @@ def validate_parse_packets_args(
     if apids:
         for apid in apids:
             # ensure it is an int or an int in hex format
-            if not re.match(r"^(0x)?[0-9a-fA-F]+$", apid):
+            if not re.match(r"^(0(x|X))?[0-9a-fA-F]+$", apid):
                 print(f"Invalid APID: {apid}")
                 raise typer.Abort()
 
