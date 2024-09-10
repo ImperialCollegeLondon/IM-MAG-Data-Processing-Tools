@@ -135,3 +135,5 @@ site/
 *gap_report.txt
 /sample-data/*.json
 /packets.csv
+tests/data/*/*.bin
+packets_scionly.csv
