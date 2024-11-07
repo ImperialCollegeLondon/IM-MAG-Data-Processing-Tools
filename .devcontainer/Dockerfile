@@ -6,7 +6,7 @@
 FROM mcr.microsoft.com/devcontainers/python:3.11
 
 # And then use pyenv to install all the other versions as the vscode user
-ARG PYTHON_VERSIONS="3.9 3.10 3.11 3.12"
+ARG PYTHON_VERSIONS="3.10 3.11 3.12"
 USER vscode
 ENV PYENV_ROOT="/home/vscode/.pyenv"
 ENV PATH="$PYENV_ROOT/bin:$PATH"

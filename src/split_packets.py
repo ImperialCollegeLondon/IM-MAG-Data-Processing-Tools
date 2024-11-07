@@ -112,13 +112,18 @@ def split_packets(
         if headers:
             report_file.write("APID,Sequence Count,Length,SCLK\n")
 
-        sci_file = report_file_path.parent / f"{report_file_path.with_suffix('').name}_scionly.csv"
+        sci_file = (
+            report_file_path.parent
+            / f"{report_file_path.with_suffix('').name}_scionly.csv"
+        )
         headers = False
         if not sci_file.exists():
             headers = True
         sci_report_file = open(sci_file, "a")
         if headers:
-            sci_report_file.write("APID,PHSEQCNT,PHDLEN,SCLK,PUS_SSUBTYPE,COMPRESSION,FOB_ACT,FIB_ACT,PRI_SENS,PRI_VECSEC,SEC_VECSEC,PRI_COARSETM,PRI_FNTM,SEC_COARSETM,SEC_FNTM\n")
+            sci_report_file.write(
+                "APID,PHSEQCNT,PHDLEN,SCLK,PUS_SSUBTYPE,COMPRESSION,FOB_ACT,FIB_ACT,PRI_SENS,PRI_VECSEC,SEC_VECSEC,PRI_COARSETM,PRI_FNTM,SEC_COARSETM,SEC_FNTM\n"
+            )
 
     filter_to_apids = parse_apids(apids)
 
@@ -157,6 +162,7 @@ def parse_packets_in_one_file(
     global exit_code
     global packet_counter
     global report_file
+    global sci_report_file
 
     pktDefinition = ccsdspy.FixedLength(
         [
@@ -164,20 +170,39 @@ def parse_packets_in_one_file(
         ]
     )
     sciPktDefinition = ccsdspy.FixedLength(
-                [
-                    PacketField(name="SHCOARSE", data_type="uint", bit_length=32),
-                    PacketField(name="PUS_SSUBTYPE", data_type="uint", bit_length=8, bit_offset=96),
-                    PacketField(name="COMPRESSION", data_type="uint", bit_length=1, bit_offset=104),
-                    PacketField(name="FOB_ACT", data_type="uint", bit_length=1, bit_offset=105),
-                    PacketField(name="FIB_ACT", data_type="uint", bit_length=1, bit_offset=106),
-                    PacketField(name="PRI_SENS", data_type="uint", bit_length=1, bit_offset=107),
-                    PacketField(name="PRI_VECSEC", data_type="uint", bit_length=3, bit_offset=112),
-                    PacketField(name="SEC_VECSEC", data_type="uint", bit_length=3, bit_offset=115),
-                    PacketField(name="PRI_COARSETM", data_type="uint", bit_length=32, bit_offset=120),
-                    PacketField(name="PRI_FNTM", data_type="uint", bit_length=16, bit_offset=152),
-                    PacketField(name="SEC_COARSETM", data_type="uint", bit_length=32, bit_offset=168),
-                    PacketField(name="SEC_FNTM", data_type="uint", bit_length=16, bit_offset=200)
-                ])
+        [
+            PacketField(name="SHCOARSE", data_type="uint", bit_length=32),
+            PacketField(
+                name="PUS_SSUBTYPE", data_type="uint", bit_length=8, bit_offset=96
+            ),
+            PacketField(
+                name="COMPRESSION", data_type="uint", bit_length=1, bit_offset=104
+            ),
+            PacketField(name="FOB_ACT", data_type="uint", bit_length=1, bit_offset=105),
+            PacketField(name="FIB_ACT", data_type="uint", bit_length=1, bit_offset=106),
+            PacketField(
+                name="PRI_SENS", data_type="uint", bit_length=1, bit_offset=107
+            ),
+            PacketField(
+                name="PRI_VECSEC", data_type="uint", bit_length=3, bit_offset=112
+            ),
+            PacketField(
+                name="SEC_VECSEC", data_type="uint", bit_length=3, bit_offset=115
+            ),
+            PacketField(
+                name="PRI_COARSETM", data_type="uint", bit_length=32, bit_offset=120
+            ),
+            PacketField(
+                name="PRI_FNTM", data_type="uint", bit_length=16, bit_offset=152
+            ),
+            PacketField(
+                name="SEC_COARSETM", data_type="uint", bit_length=32, bit_offset=168
+            ),
+            PacketField(
+                name="SEC_FNTM", data_type="uint", bit_length=16, bit_offset=200
+            ),
+        ]
+    )
 
     if limit != 0 and packet_counter >= limit:
         return
@@ -202,9 +227,9 @@ def parse_packets_in_one_file(
                     continue
 
             is_science = False
-            if apid == 0x41C or apid == 0x42c:
+            if apid == 0x41C or apid == 0x42C:
                 is_science = True
-                
+
                 fileLikeObject.seek(0)
                 pkt = sciPktDefinition.load(fileLikeObject, include_primary_header=True)
 
@@ -225,7 +250,7 @@ def parse_packets_in_one_file(
 
                     with open(newFileName, "wb") as f:
                         f.write(packet_bytes)
-                        
+
             packet_counter += 1
 
             if not no_report:
@@ -234,19 +259,19 @@ def parse_packets_in_one_file(
                 )
                 if is_science:
                     sci_report_file.write(
-                        f"{apid},{pkt['CCSDS_SEQUENCE_COUNT'][0]},{pkt['CCSDS_PACKET_LENGTH'][0]},{pkt['SHCOARSE'][0]}," +
-                            f"{pkt['PUS_SSUBTYPE'][0]}," +
-                            f"{pkt['COMPRESSION'][0]}," +
-                            f"{pkt['FOB_ACT'][0]}," +
-                            f"{pkt['FIB_ACT'][0]}," +
-                            f"{pkt['PRI_SENS'][0]}," +
-                            f"{pkt['PRI_VECSEC'][0]}," +
-                            f"{pkt['SEC_VECSEC'][0]}," +
-                            f"{pkt['PRI_COARSETM'][0]}," +
-                            f"{pkt['PRI_FNTM'][0]}," +
-                            f"{pkt['SEC_COARSETM'][0]}," +
-                            f"{pkt['SEC_FNTM'][0]}" +
-                            "\n"
+                        f"{apid},{pkt['CCSDS_SEQUENCE_COUNT'][0]},{pkt['CCSDS_PACKET_LENGTH'][0]},{pkt['SHCOARSE'][0]},"
+                        + f"{pkt['PUS_SSUBTYPE'][0]},"
+                        + f"{pkt['COMPRESSION'][0]},"
+                        + f"{pkt['FOB_ACT'][0]},"
+                        + f"{pkt['FIB_ACT'][0]},"
+                        + f"{pkt['PRI_SENS'][0]},"
+                        + f"{pkt['PRI_VECSEC'][0]},"
+                        + f"{pkt['SEC_VECSEC'][0]},"
+                        + f"{pkt['PRI_COARSETM'][0]},"
+                        + f"{pkt['PRI_FNTM'][0]},"
+                        + f"{pkt['SEC_COARSETM'][0]},"
+                        + f"{pkt['SEC_FNTM'][0]}"
+                        + "\n"
                     )
 
             if limit > 0 and packet_counter >= limit:
