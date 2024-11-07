@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mag"
-version = "1.9.0"
+version = "1.10.0"
 description = "Data tools for MAG GSE data processing"
 authors = ["Imperial College"]
 readme = "README.md"
@@ -9,7 +9,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 typer = "^0.9.0"
 isort = "^5.11.4"
 setuptools = "^69.1.0"
