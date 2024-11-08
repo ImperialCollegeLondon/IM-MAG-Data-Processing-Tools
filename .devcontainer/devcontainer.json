@@ -49,7 +49,12 @@
 				"ms-python.python",
 				"ms-python.flake8",
 				"ms-python.black-formatter",
-				"github.vscode-github-actions"
+				"github.vscode-github-actions",
+				"ms-vscode.hexeditor",
+				"ms-python.vscode-pylance",
+				"ms-python.debugpy",
+				"GitHub.copilot",
+				"GitHub.copilot-chat"
 			]
 		}
 	},
