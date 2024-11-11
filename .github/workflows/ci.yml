@@ -5,13 +5,13 @@ on:
   push:
     paths-ignore:
       - 'README**'
-    branches:
-      - '**'
+    branches-ignore:
+      - 'dependabot/**'
     tags:
       - '*'
   pull_request:
     branches:
-      - '*'
+      - 'main'
     paths-ignore:
       - 'README**'
   # Allows you to run this workflow manually from the Actions tab
