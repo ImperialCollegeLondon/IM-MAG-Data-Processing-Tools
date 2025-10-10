@@ -208,10 +208,12 @@ def parse_packets_in_one_file(
         return
 
     size = os.path.getsize(packet_file)
+    processed_bytes = 0
     with Progress(refresh_per_second=1) as progress:
         task1 = progress.add_task(f"Processing {packet_file}", total=size)
         for packet_bytes in iter_packet_bytes(packet_file, include_primary_header=True):
             progress.update(task1, advance=len(packet_bytes))
+            processed_bytes += len(packet_bytes)
 
             fileLikeObject = io.BytesIO(packet_bytes)
             pkt = pktDefinition.load(fileLikeObject, include_primary_header=True)
@@ -280,7 +282,7 @@ def parse_packets_in_one_file(
 
     if not summarise_only:
         print(
-            f"Saved {packet_counter} packets from {packet_file} to {packet_file.parent} ({size} bytes)"
+            f"Saved {packet_counter} packets from {packet_file} to {packet_file.parent} ({processed_bytes} bytes processed)"
         )
 
 

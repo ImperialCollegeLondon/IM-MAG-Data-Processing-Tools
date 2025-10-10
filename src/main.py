@@ -8,18 +8,18 @@ import typer
 
 import check_gaps
 import split_packets
+import filter_packets
 
 app = typer.Typer()
 
 app.add_typer(check_gaps.app, name="check-gap")
 app.add_typer(split_packets.app, name="split-packets")
+app.add_typer(filter_packets.app, name="filter-packets")
 
 
 @app.command()
 def countdown():
-    print(
-        f"IMAP launch is (provisionally) {get_relative_time(datetime.datetime(2025, 5, 1))}"
-    )
+    print(f"IMAP launch is {get_relative_time(datetime.datetime(2025, 9, 24))}")
 
 
 def version_callback(value: bool):

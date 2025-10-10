@@ -13,11 +13,13 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 - `mag split-packets --limit 100 --all data/file.bin` - split the first 100 packets (spacecraft, mag, other instruments) in file.bin into individual files in folders based on apid
 - `mag split-packets --apid 1000 --apid 1001 data/*.bin` - extract all packets with apids 1000 and 1001 from all files in data/*.bin and save them into folders based on apid
 - `mag split-packets --summarise --apid 0x3e9 --report packets.csv "tests/data/1001/*.bin` - create a packets.csv file with a summary of all packets with apid 1001 in files matching data/*.bin
+- `mag filter-packets --apid 1000 --apid 1001 --output-file filtered_packets.bin data/*.bin ` - find all packets with apids 1000 and 1001 from all files in data/*.bin and merge them into a single file called filtered_packets.bin excluding any duplicates
+- `mag filter-packets --limit 100 --mag-only --output-file filtered_packets.bin data/packets.bin ` - get the first 100 MAG packets from data/packets.bin and save them into filtered_packets.bin
 
 ## Mag cli `USERS` Quick Start
 
 - Download the wheel/tar from the GitHub Actions build artifacts
-- Make sure you have the correct version of python installed. 
+- Make sure you have the correct version of python installed.
 - Install pipx (not required but this ensures the tool is installed in it's own environment and dependencies cannot make a mess of your system)
     ```bash
     python3 -m pip install --user pipx

@@ -69,7 +69,7 @@ def test_split_packets_creates_report():
     assert os.path.exists(report_file.absolute())
     assert "Processing sample-data/mag_l0_test_data.pkts" in result.stdout
     assert (
-        "Saved 36 packets from sample-data/mag_l0_test_data.pkts to sample-data (38608 bytes)"
+        "Saved 36 packets from sample-data/mag_l0_test_data.pkts to sample-data (38608 bytes processed)"
         in result.stdout
     )
 
