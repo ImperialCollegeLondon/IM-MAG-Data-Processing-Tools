@@ -21,7 +21,7 @@ jobs:
   build:
     strategy:
       matrix:
-        python-versions: ['3.10', '3.11', '3.12']
+        python-versions: ['3.10', '3.11', '3.12', '3.13', '3.14']
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     # map step outputs to job outputs so they can be share among jobs
