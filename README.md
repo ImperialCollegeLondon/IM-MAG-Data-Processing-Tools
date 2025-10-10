@@ -17,7 +17,7 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 ## Mag cli `USERS` Quick Start
 
 - Download the wheel/tar from the GitHub Actions build artifacts
-- Make sure you have the correct version of python installed (probably python3.10). If not use pyenv (see install pyenv section below).
+- Make sure you have the correct version of python installed. 
 - Install pipx (not required but this ensures the tool is installed in it's own environment and dependencies cannot make a mess of your system)
     ```bash
     python3 -m pip install --user pipx
@@ -115,25 +115,26 @@ Test reports appear automatically in the github actions report.
 Code coverage data is generated on build into the folder `htmlcov` and is uploaded on every Actions build.
 
 
-## Access different versions of python using pyenv
+## Access different versions of python using UV
 
 List the installed versions
 
 ```
-pyenv versions
+uv python list
 ```
 
 And change to a different version of python easily
 
 ```
-pyenv local 3.10
+uv python pin 3.10
+
 poetry env use python3.10
 python3 --version
 poetry install
 poetry run mag hello world
 
 
-pyenv local 3.11
+uv python pin 3.11
 poetry env use python3.11
 python3 --version
 poetry install
@@ -144,11 +145,11 @@ poetry run mag hello world
 
 This repo publishes to the `/dist` folder a python wheel (.whl) and tar containing a CLI executable called `demo` that can be installed and run. This app uses the library [typer](https://typer.tiangolo.com/) to produce a user friendly interactive cli.
 
-## Tools - poetry, pyenv, isort, flake8, black
+## Tools - poetry, uv, isort, flake8, black
 
 All these tools are preinstalled in the dev container:
 
-- **Python3** - multiple versions installed and available, managed using pyenv
+- **Python3** - multiple versions installed and available, managed using uv
 - **Poetry** - [tool to manage python dependencies](https://python-poetry.org/), tools and package
 - **isort, black and flake8** - configured to lint and tidy up your python code automatically. Executed using ./build.sh and CTRL+SHIFT+B (build in vscode)
 
@@ -159,7 +160,7 @@ This repository uses an opinionated setup for a python command line app. It uses
 
 - configures the VS Code IDE for east python3 based development, including testing and linting
 - use a docker based development environment with vscode devcontainer
-- do package management and python version tooling using Poetry and pyenv
+- do package management and python version tooling using Poetry and uv
 - continuous integration using GitHub Actions, including ruynning unit tests, calculating code coverage and building tarballs and wheel files for you.
 
 ## Continuous Integration with GitHub Actions
