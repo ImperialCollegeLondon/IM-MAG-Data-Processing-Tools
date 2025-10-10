@@ -138,6 +138,7 @@ def parse_packets_in_one_file(
 
     size = os.path.getsize(packet_file)
     processed_bytes = 0
+    ignored_packets = 0
     with open(output_file, "ab") as output_file_handle:
         with Progress(refresh_per_second=1) as progress:
             task1 = progress.add_task(f"Processing {packet_file}", total=size)
@@ -154,10 +155,12 @@ def parse_packets_in_one_file(
                 # check the packet shopuld not be filtered out
                 if mag_only:
                     if apid < APID_MAG_START or apid > APID_MAG_END:
+                        ignored_packets += 1
                         continue
 
                 if apid_filter:
                     if apid not in apid_filter:
+                        ignored_packets += 1
                         continue
 
                 if not output_file.parent.exists():
@@ -169,6 +172,7 @@ def parse_packets_in_one_file(
                         f"Duplicate packet found - ApID: 0x{hex(apid)} Seq Count: {pkt['CCSDS_SEQUENCE_COUNT'][0]} SHCOARSE: {pkt['SHCOARSE'][0]}. Skipping it.",
                         file=sys.stderr,
                     )
+                    ignored_packets += 1
                     continue
 
                 unique_packets.add(unique_id)
@@ -180,7 +184,7 @@ def parse_packets_in_one_file(
                     break
 
     print(
-        f"Saved {packet_counter} packets from {packet_file} to {output_file.name} ({processed_bytes} bytes processed, {os.path.getsize(output_file)} bytes written)"
+        f"Saved {packet_counter} packets from {packet_file} to {output_file.name} ({processed_bytes} bytes processed, {os.path.getsize(output_file)} bytes written). Ignored {ignored_packets} packets."
     )
 
 
