@@ -7,14 +7,16 @@ from typing import Annotated, Optional
 import typer
 
 import check_gaps
-import split_packets
 import filter_packets
+import parse_packets
+import split_packets
 
 app = typer.Typer()
 
 app.add_typer(check_gaps.app, name="check-gap")
 app.add_typer(split_packets.app, name="split-packets")
 app.add_typer(filter_packets.app, name="filter-packets")
+app.add_typer(parse_packets.app, name="parse-packets")
 
 
 @app.command()

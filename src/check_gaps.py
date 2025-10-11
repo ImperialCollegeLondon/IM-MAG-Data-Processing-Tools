@@ -13,7 +13,7 @@ import typer
 from click.exceptions import Exit
 
 from constants import CONSTANTS
-from science_mode import Mode, ModeConfig
+from science_mode import Mode, ModeConfig, ModeName
 from time_util import get_met_from_shcourse
 
 app = typer.Typer()
@@ -380,9 +380,9 @@ def validate_check_gap_args(
 
     # files in v1 format will not match the regex so guess mode from file name
     if not match and mode == Mode.auto:
-        if "burst" in data_file.name:
+        if ModeName.burst in data_file.name:
             mode = Mode.burst128
-        elif "normal" in data_file.name:
+        elif ModeName.normal in data_file.name:
             mode = Mode.normalE8
         elif "IALiRT" in data_file.name:
             mode = Mode.i_alirt

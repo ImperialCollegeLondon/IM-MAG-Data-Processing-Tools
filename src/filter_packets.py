@@ -16,6 +16,7 @@ from click.exceptions import Exit
 from rich.progress import Progress, track
 
 from constants import CONSTANTS
+from packet_util import parse_apids
 
 app = typer.Typer()
 
@@ -75,10 +76,12 @@ def filter_packets(
         )
 
     if globPath:
-        process_multi_file(globPath, output_file, ctx, limit, apids, mag_only)
+        _filter_packets_in_multiple_files_from_glob(
+            globPath, output_file, ctx, limit, apids, mag_only
+        )
         return
 
-    validate_parse_packets_args(packet_files, output_file, limit, apids)
+    _validate_filter_packets_args(packet_files, output_file, limit, apids)
 
     filter_to_apids = parse_apids(apids)
 
@@ -89,26 +92,14 @@ def filter_packets(
             / f"{packet_file_name.stem}_{datetime.now().strftime('%Y%m%d%H%M%S')}.bin"
         )
 
-    parse_packets_in_one_file(
+    _filter_packets_in_one_file(
         packet_file_name, output_file, limit, mag_only, filter_to_apids
     )
 
     print(f"Filtered packets saved to {output_file.absolute()}")
 
 
-def parse_apids(apids):
-    filter_to_apids = []
-    if apids:
-        for apid in apids:
-            # if it is an integer, convert it to an int
-            if re.match(r"^[0-9]+$", apid):
-                filter_to_apids.append(int(apid, 10))
-            else:
-                filter_to_apids.append(int(apid, 16))
-    return filter_to_apids
-
-
-def parse_packets_in_one_file(
+def _filter_packets_in_one_file(
     packet_file: Path,
     output_file: Path,
     limit: int,
@@ -161,7 +152,7 @@ def parse_packets_in_one_file(
                 unique_id = (apid, pkt["SHCOARSE"][0], pkt["CCSDS_SEQUENCE_COUNT"][0])
                 if unique_id in unique_packets:
                     print(
-                        f"Duplicate packet found - ApID: 0x{hex(apid)} Seq Count: {pkt['CCSDS_SEQUENCE_COUNT'][0]} SHCOARSE: {pkt['SHCOARSE'][0]}. Skipping it.",
+                        f"Duplicate packet found - ApID: {hex(apid)} Seq Count: {pkt['CCSDS_SEQUENCE_COUNT'][0]} SHCOARSE: {pkt['SHCOARSE'][0]}. Skipping it.",
                         file=sys.stderr,
                     )
                     ignored_packets += 1
@@ -180,7 +171,9 @@ def parse_packets_in_one_file(
     )
 
 
-def process_multi_file(globPath, output_file, ctx, limit, apids, mag_only):
+def _filter_packets_in_multiple_files_from_glob(
+    globPath, output_file, ctx, limit, apids, mag_only
+):
     multifile_exit_code = 0
     files = 0
     global is_multi_file
@@ -217,7 +210,7 @@ def process_multi_file(globPath, output_file, ctx, limit, apids, mag_only):
         raise typer.Exit(code=multifile_exit_code)
 
 
-def validate_parse_packets_args(
+def _validate_filter_packets_args(
     data_file: Path,
     output_file: Path | None,
     limit: int,

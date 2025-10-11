@@ -15,6 +15,7 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 - `mag split-packets --summarise --apid 0x3e9 --report packets.csv "tests/data/1001/*.bin` - create a packets.csv file with a summary of all packets with apid 1001 in files matching data/*.bin
 - `mag filter-packets --apid 1000 --apid 1001 --output-file filtered_packets.bin data/*.bin ` - find all packets with apids 1000 and 1001 from all files in data/*.bin and merge them into a single file called filtered_packets.bin excluding any duplicates
 - `mag filter-packets --limit 100 --mag-only --output-file filtered_packets.bin data/packets.bin ` - get the first 100 MAG packets from data/packets.bin and save them into filtered_packets.bin
+- `mag parse-packets --limit 100 --apid 0x42C --output-dir parsed_packets data/packets.bin` - parse the first 100 MAG BM Science packets in data/packets.bin and save the extracted science data into CSV files in the parsed_packets folder
 
 ## Mag cli `USERS` Quick Start
 
@@ -26,7 +27,7 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
     ```
 - [install mag with pipx](https://pypa.github.io/pipx/docs/#pipx-install) or with pip if you must. From a folder that contains the whl file or the gz file install like so:
     ```bash
-    pipx install --python python3.10 ./python3.10/mag-[VERSION_HERE]-py3-none-any.whl
+    pipx install --python python3.14 ./python3.14/mag-[VERSION_HERE]-py3-none-any.whl
     ```
 - Run mag commands on the command line to check it installed ok
     ```bash
@@ -43,10 +44,10 @@ See `install.sh` for a script that does some of this for you if you set some env
 - open the repo in vscode and switch to the dev container (CTRL-P -> Reopen in dev container)
 - open a terminal and run `poetry install` to restore dependencies
 - run the code within poetry in a virtual environment: `poetry run mag --help`
-- or run the code with python3 in a virtual environment: `poetry shell` and `poetry install` to setup env and then `python3 src/main.py countdown`. Just calling `mag countdown` also works because the command is actually installed in the virtual env.
+- or run the code with python3 in a virtual environment: `$(poetry env activate)` and `poetry install` to setup env and then `python3 src/main.py countdown`. Just calling `mag countdown` also works because the command is actually installed in the virtual env.
 - One click to run the tests and generate coverage: `./build.sh`
 - One click to package the app into the /dist folder: `./pack.sh`
-- One click to run the tests and package the app across multiple versions of python 3.9, 3.10, 3.11 etc: `./build-all.sh`
+- One click to run the tests and package the app across multiple versions of python 3.11, 3.12, 3.13, 3.14 etc: `./build-all.sh`
 
 ## Dev Env Setup In Depth
 
@@ -128,16 +129,16 @@ uv python list
 And change to a different version of python easily
 
 ```
-uv python pin 3.10
+uv python pin 3.14
 
-poetry env use python3.10
+poetry env use python3.14
 python3 --version
 poetry install
 poetry run mag hello world
 
 
-uv python pin 3.11
-poetry env use python3.11
+uv python pin 3.13
+poetry env use python3.13
 python3 --version
 poetry install
 poetry run mag hello world

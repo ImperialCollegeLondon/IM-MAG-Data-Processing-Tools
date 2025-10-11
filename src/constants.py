@@ -23,3 +23,7 @@ class CONSTANTS:
     IMAP_EPOCH = datetime(2010, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
     APID_MAG_START = 0x3E0
     APID_MAG_END = 0x45F
+    APID_MAG_SCIENCE_NM = 0x41C
+    APID_MAG_SCIENCE_BM = 0x42C
+
+    MAX_FINE_TIME = 65536  # 2^16

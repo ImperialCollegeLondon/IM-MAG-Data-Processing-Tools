@@ -21,9 +21,11 @@ jobs:
   build:
     strategy:
       matrix:
-        python-versions: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        python-versions: ['3.11', '3.12', '3.13', '3.14']
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+        PYTHON_VERSION_FOR_PUBLISH: 3.13
     # map step outputs to job outputs so they can be share among jobs
     outputs:
       package_version: ${{ env.PACKAGE_VERSION }}
@@ -84,7 +86,7 @@ jobs:
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
-        if: matrix.python-versions == '3.10'
+        if: matrix.python-versions == env.PYTHON_VERSION_FOR_PUBLISH
         with:
           name: Coverage-python${{matrix.python-versions}}-${{ env.PACKAGE_VERSION }}
           path: htmlcov
@@ -92,7 +94,7 @@ jobs:
 
       - name: Create Release ${{github.ref_name}} & upload artifacts
         uses: softprops/action-gh-release@v2
-        if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.python-versions == '3.10'}}
+        if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.python-versions == env.PYTHON_VERSION_FOR_PUBLISH }}
         with:
           draft: false
           prerelease: false
