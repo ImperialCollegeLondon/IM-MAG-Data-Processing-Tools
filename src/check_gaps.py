@@ -4,7 +4,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Optional
@@ -14,6 +14,7 @@ from click.exceptions import Exit
 
 from constants import CONSTANTS
 from science_mode import Mode, ModeConfig
+from time_util import get_met_from_shcourse
 
 app = typer.Typer()
 
@@ -428,9 +429,7 @@ def verify_timestamp(
     fine: int,
     timestamp_type: str,
 ):
-    sclk = (CONSTANTS.IMAP_EPOCH + timedelta(seconds=coarse)).strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
+    sclk = get_met_from_shcourse(coarse).strftime("%Y-%m-%d %H:%M:%S")
     line_id = f"line number {line_count + 1}, sequence count: {sequence}, SCLK: {sclk}"
 
     if fine < MIN_FINE or fine > MAX_FINE:

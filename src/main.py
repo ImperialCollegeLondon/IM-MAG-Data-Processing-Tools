@@ -62,7 +62,7 @@ def get_relative_time(dt):
     days = delta / DAY
 
     if delta < 0:
-        return "already happened"
+        return "in the past - GO IMAP!"
 
     if delta < 1 * MINUTE:
         if delta == 1:

@@ -15,14 +15,15 @@ from ccsdspy.utils import iter_packet_bytes
 from click.exceptions import Exit
 from rich.progress import Progress, track
 
+from constants import CONSTANTS
+from time_util import get_met_from_shcourse
+
 app = typer.Typer()
 
 report_file: TextIOWrapper
 sci_report_file: TextIOWrapper
 exit_code = 0
 packet_counter = 0
-APID_MAG_START = 0x3E0
-APID_MAG_END = 0x45F
 is_multi_file = False
 
 
@@ -110,7 +111,7 @@ def split_packets(
             headers = True
         report_file = open(report_file_path, "a")
         if headers:
-            report_file.write("APID,Sequence Count,Length,SCLK\n")
+            report_file.write("APID,Sequence Count,Length,SHCOURSE,MET_UTC\n")
 
         sci_file = (
             report_file_path.parent
@@ -122,7 +123,7 @@ def split_packets(
         sci_report_file = open(sci_file, "a")
         if headers:
             sci_report_file.write(
-                "APID,PHSEQCNT,PHDLEN,SCLK,PUS_SSUBTYPE,COMPRESSION,FOB_ACT,FIB_ACT,PRI_SENS,PRI_VECSEC,SEC_VECSEC,PRI_COARSETM,PRI_FNTM,SEC_COARSETM,SEC_FNTM\n"
+                "APID,PHSEQCNT,PHDLEN,SHCOURSE,PUS_SSUBTYPE,COMPRESSION,FOB_ACT,FIB_ACT,PRI_SENS,PRI_VECSEC,SEC_VECSEC,PRI_COARSETM,PRI_FNTM,SEC_COARSETM,SEC_FNTM,MET_UTC\n"
             )
 
     filter_to_apids = parse_apids(apids)
@@ -221,7 +222,7 @@ def parse_packets_in_one_file(
 
             # check the packet shopuld not be filtered out
             if mag_only:
-                if apid < APID_MAG_START or apid > APID_MAG_END:
+                if apid < CONSTANTS.APID_MAG_START or apid > CONSTANTS.APID_MAG_END:
                     continue
 
             if apid_filter:
@@ -256,8 +257,11 @@ def parse_packets_in_one_file(
             packet_counter += 1
 
             if not no_report:
+                met_utc = get_met_from_shcourse(int(pkt["SHCOARSE"][0])).strftime(
+                    "%Y-%m-%d %H:%M:%S.%f"
+                )[:-3]
                 report_file.write(
-                    f"{apid},{pkt['CCSDS_SEQUENCE_COUNT'][0]},{pkt['CCSDS_PACKET_LENGTH'][0]},{pkt['SHCOARSE'][0]}\n"
+                    f"{apid},{pkt['CCSDS_SEQUENCE_COUNT'][0]},{pkt['CCSDS_PACKET_LENGTH'][0]},{pkt['SHCOARSE'][0]},{met_utc}\n"
                 )
                 if is_science:
                     sci_report_file.write(
@@ -273,6 +277,7 @@ def parse_packets_in_one_file(
                         + f"{pkt['PRI_FNTM'][0]},"
                         + f"{pkt['SEC_COARSETM'][0]},"
                         + f"{pkt['SEC_FNTM'][0]}"
+                        + f",{met_utc}"
                         + "\n"
                     )
 

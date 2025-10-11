@@ -15,15 +15,13 @@ from ccsdspy.utils import iter_packet_bytes
 from click.exceptions import Exit
 from rich.progress import Progress, track
 
+from constants import CONSTANTS
+
 app = typer.Typer()
 
-report_file: TextIOWrapper
-sci_report_file: TextIOWrapper
-exit_code = 0
 packet_counter = 0
-APID_MAG_START = 0x3E0
-APID_MAG_END = 0x45F
 is_multi_file = False
+unique_packets = set()
 
 
 @app.callback(
@@ -61,13 +59,10 @@ def filter_packets(
     Extract and dedupe raw packets based on apid. Removes and flags duplicates based on apid and seq count. Can filter out other instruments or apids.
     """
 
-    global exit_code
     global is_multi_file
     global unique_packets
 
-    exit_code = 0
     globPath = None
-    unique_packets = set()
 
     if packet_files.is_dir():
         globPath = os.path.join(packet_files, "*.bin")
@@ -99,9 +94,6 @@ def filter_packets(
     )
 
     print(f"Filtered packets saved to {output_file.absolute()}")
-
-    if exit_code != 0:
-        raise typer.Exit(code=exit_code)
 
 
 def parse_apids(apids):
@@ -154,7 +146,7 @@ def parse_packets_in_one_file(
 
                 # check the packet shopuld not be filtered out
                 if mag_only:
-                    if apid < APID_MAG_START or apid > APID_MAG_END:
+                    if apid < CONSTANTS.APID_MAG_START or apid > CONSTANTS.APID_MAG_END:
                         ignored_packets += 1
                         continue
 

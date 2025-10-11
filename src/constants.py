@@ -21,3 +21,5 @@ class CONSTANTS:
         re.IGNORECASE | re.MULTILINE,
     )
     IMAP_EPOCH = datetime(2010, 1, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    APID_MAG_START = 0x3E0
+    APID_MAG_END = 0x45F
