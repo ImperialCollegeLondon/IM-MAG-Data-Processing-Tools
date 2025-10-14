@@ -16,8 +16,8 @@ from rich.progress import Progress, track
 from constants import CONSTANTS
 from packet_util import (
     get_imap_basic_packet_def,
-    parse_apids,
     get_imap_science_packet_headers_only_def,
+    parse_apids,
 )
 from time_util import get_met_from_shcourse
 

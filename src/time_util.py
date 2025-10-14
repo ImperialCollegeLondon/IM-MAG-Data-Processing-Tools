@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta
 import re
+from datetime import datetime, timedelta
 from string import Formatter
-from datetime import timedelta
+
 from constants import CONSTANTS
 
 
