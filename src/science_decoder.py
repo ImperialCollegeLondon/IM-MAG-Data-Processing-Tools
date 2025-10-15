@@ -11,7 +11,7 @@ import numpy as np
 from constants import CONSTANTS
 from science_mode import ModeName
 from src import time_util
-from time_util import get_met_from_shcourse
+from time_util import get_met_from_shcourse, humanise_timedelta
 
 Vector = namedtuple("Vector", ["x", "y", "z", "rng"])
 
@@ -444,6 +444,10 @@ class MAGScienceDecoder:
             if self.currentModeName == ModeName.burst
             else self.last_normal_time
         )
+        gap_between_packets = humanise_timedelta(
+            (new_packet_time - last_packet_time) if last_packet_time else 0,
+            inputtype="s",
+        )
         long_gap_between_packets = (
             last_packet_time is not None
             and new_packet_time > last_packet_time + (secs_per_packet * 5)
@@ -452,14 +456,14 @@ class MAGScienceDecoder:
         if self.currentModeName == ModeName.burst:
             if long_gap_between_packets and self._burstWriter is not None:
                 print(
-                    f"Time gap detected in burst data - mode has changed, close {self._burstWriter.filename}"
+                    f"{gap_between_packets} gap detected in burst data - mode has changed, close {self._burstWriter.filename}"
                 )
                 self._burstWriter.close()
             self.last_burst_time = new_packet_time
         elif self.currentModeName == ModeName.normal:
             if long_gap_between_packets and self._normalWriter is not None:
                 print(
-                    f"Time gap detected in normal data - mode has changed, close {self._normalWriter.filename}"
+                    f"{gap_between_packets} gap detected in normal data - mode has changed, close {self._normalWriter.filename}"
                 )
                 self._normalWriter.close()
             self.last_normal_time = new_packet_time
