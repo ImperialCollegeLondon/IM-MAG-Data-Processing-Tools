@@ -181,6 +181,9 @@ def _parse_packets_in_one_file(
                 pkt["PRI_VECSEC"][0].astype(int),
                 pkt["SEC_VECSEC"][0].astype(int),
                 pkt["COMPRESSION"][0].astype(int),
+                pkt["FOB_ACT"][0].astype(int),
+                pkt["FIB_ACT"][0].astype(int),
+                pkt["PRI_SENS"][0].astype(int),
                 pkt["VECTOR_DATA"][0].tobytes(),
             )
 

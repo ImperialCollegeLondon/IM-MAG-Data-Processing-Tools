@@ -9,6 +9,11 @@ def get_met_from_shcourse(seconds_since_epoch: float) -> datetime:
     return CONSTANTS.IMAP_EPOCH + timedelta(seconds=seconds_since_epoch)
 
 
+def get_met_from_sci_timestamp(course_time, fine_time) -> datetime:
+    seconds_since_epoch = course_time + (fine_time / CONSTANTS.MAX_FINE_TIME)
+    return CONSTANTS.IMAP_EPOCH + timedelta(seconds=seconds_since_epoch)
+
+
 def humanise_timedelta(
     tdelta, fmt="{D}d {H}h {M}m {S}s", strip_zeros=True, inputtype="timedelta"
 ):

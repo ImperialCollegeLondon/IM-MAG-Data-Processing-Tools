@@ -10,6 +10,7 @@ import numpy as np
 
 from constants import CONSTANTS
 from science_mode import ModeName
+from src import time_util
 from time_util import get_met_from_shcourse
 
 Vector = namedtuple("Vector", ["x", "y", "z", "rng"])
@@ -79,6 +80,8 @@ class _ScienceFileWriter:
                     "sec_fine",
                     "compression",
                     "compression_width_bits",
+                    "pri_active",
+                    "sec_active",
                 ]
             )
             print(f"Opened new {self.modeName.value} data file {self.filename}")
@@ -94,39 +97,43 @@ class _ScienceFileWriter:
 
     def write(
         self,
-        sequence,
-        primaryVector,
-        secondaryVector,
-        priCoarse,
-        priFine,
-        secCoarse,
-        secFine,
+        sequence_count,
+        primary_vector,
+        secondary_vector,
+        primary_science_time_coarse,
+        primary_science_time_fine,
+        secondary_science_time_course,
+        secondary_science_time_fine,
         compression,
         compression_width_bits,
+        primary_is_active,
+        secondary_is_active,
     ):
         if self.isOpen == 0:
-            self._first_write(priCoarse, priFine)
+            self._first_write(primary_science_time_coarse, primary_science_time_fine)
 
         assert self.writer is not None
 
         if self.isOpen == 1:
             self.writer.writerow(
                 [
-                    sequence,
-                    primaryVector.x if primaryVector else None,
-                    primaryVector.y if primaryVector else None,
-                    primaryVector.z if primaryVector else None,
-                    primaryVector.rng if primaryVector else None,
-                    secondaryVector.x if secondaryVector else None,
-                    secondaryVector.y if secondaryVector else None,
-                    secondaryVector.z if secondaryVector else None,
-                    secondaryVector.rng if secondaryVector else None,
-                    priCoarse if primaryVector else None,
-                    priFine if primaryVector else None,
-                    secCoarse if secondaryVector else None,
-                    secFine if secondaryVector else None,
+                    sequence_count,
+                    primary_vector.x if primary_vector else None,
+                    primary_vector.y if primary_vector else None,
+                    primary_vector.z if primary_vector else None,
+                    primary_vector.rng if primary_vector else None,
+                    secondary_vector.x if secondary_vector else None,
+                    secondary_vector.y if secondary_vector else None,
+                    secondary_vector.z if secondary_vector else None,
+                    secondary_vector.rng if secondary_vector else None,
+                    primary_science_time_coarse if primary_vector else None,
+                    primary_science_time_fine if primary_vector else None,
+                    secondary_science_time_course if secondary_vector else None,
+                    secondary_science_time_fine if secondary_vector else None,
                     compression,
                     compression_width_bits,
+                    int(primary_is_active),
+                    int(secondary_is_active),
                 ]
             )
 
@@ -160,6 +167,9 @@ class MAGScienceDecoder:
         RATE_THIRTYTWO_VEC_PER_SEC = 5
         RATE_SIXTYFOUR_VEC_PER_SEC = 6
         RATE_ONETWENTYEIGHT_VEC_PER_SEC = 7
+
+    PRIMARY_SENSOR_IS_FOB = 0
+    PRIMARY_SENSOR_IS_FIB = 1
 
     MAX_COMPRESSION_WIDTH = 20
     SCIENCE_COMPRESSION_REFERENCE_WIDTH_DEFAULT = 16
@@ -330,6 +340,8 @@ class MAGScienceDecoder:
         self._normalWriter = None
         self.currentModeName = None | ModeName
         self.base_path = folder
+        self.last_burst_time = None
+        self.last_normal_time = None
 
     def extract_packet_to_csv(
         self,
@@ -345,6 +357,9 @@ class MAGScienceDecoder:
         PRI_VECSEC,
         SEC_VECSEC,
         compression,
+        fob_is_active,
+        fib_is_active,
+        pri_sensor,
         vector_data,
     ):
         secs_per_packet = pus_ssubtype + 1
@@ -355,11 +370,23 @@ class MAGScienceDecoder:
         self.currentModeName = (
             ModeName.burst if apId == CONSTANTS.APID_MAG_SCIENCE_BM else ModeName.normal
         )
+        pri_time_utc = time_util.get_met_from_sci_timestamp(pri_coarse, pri_fine)
 
         # calc how much data is in this packet
         total_pri_vecs = secs_per_packet * pri_vecs_per_sec
         total_sec_vecs = secs_per_packet * sec_vecs_per_sec
         start_of_VECTORS = 0
+
+        primary_is_active = (
+            pri_sensor == MAGScienceDecoder.PRIMARY_SENSOR_IS_FOB and fob_is_active == 1
+        ) or (
+            pri_sensor == MAGScienceDecoder.PRIMARY_SENSOR_IS_FIB and fib_is_active == 1
+        )
+        secondary_is_active = (
+            pri_sensor == MAGScienceDecoder.PRIMARY_SENSOR_IS_FOB and fib_is_active == 1
+        ) or (
+            pri_sensor == MAGScienceDecoder.PRIMARY_SENSOR_IS_FIB and fob_is_active == 1
+        )
 
         # check for compression
         if compression:
@@ -379,6 +406,8 @@ class MAGScienceDecoder:
                     vector_data,
                     compression_width_bits,
                     has_range_data_section,
+                    pri_coarse,
+                    pri_time_utc,
                 )
             )
         else:
@@ -408,6 +437,32 @@ class MAGScienceDecoder:
         ):
             print(f"Rate has changed, close {self._normalWriter.filename}")
             self._normalWriter.close()
+
+        new_packet_time = max(pri_coarse, sec_coarse)
+        last_packet_time = (
+            self.last_burst_time
+            if self.currentModeName == ModeName.burst
+            else self.last_normal_time
+        )
+        long_gap_between_packets = (
+            last_packet_time is not None
+            and new_packet_time > last_packet_time + (secs_per_packet * 5)
+        )
+
+        if self.currentModeName == ModeName.burst:
+            if long_gap_between_packets and self._burstWriter is not None:
+                print(
+                    f"Time gap detected in burst data - mode has changed, close {self._burstWriter.filename}"
+                )
+                self._burstWriter.close()
+            self.last_burst_time = new_packet_time
+        elif self.currentModeName == ModeName.normal:
+            if long_gap_between_packets and self._normalWriter is not None:
+                print(
+                    f"Time gap detected in normal data - mode has changed, close {self._normalWriter.filename}"
+                )
+                self._normalWriter.close()
+            self.last_normal_time = new_packet_time
 
         if self.currentModeName == ModeName.burst and (
             self._burstWriter is None or self._burstWriter.isOpen == 0
@@ -456,6 +511,8 @@ class MAGScienceDecoder:
                 sec_fine,
                 compression,
                 compression_width_bits,
+                primary_is_active,
+                secondary_is_active,
             )
 
         # after each packet make sure everything is written to disk
@@ -502,6 +559,8 @@ class MAGScienceDecoder:
         vector_data,
         compression_width_bits,
         has_range_data_section,
+        pri_coarse,
+        pri_time_utc,
     ):
         sci_cursor = 0
         primaryVectors = []
@@ -553,7 +612,7 @@ class MAGScienceDecoder:
 
                 if bits_read > MAGScienceDecoder.HDR_VECTOR_WIDTH_THRESHOLD:
                     print(
-                        f"NOTE: HDR detected after {i} vectors. Switching to full width."
+                        f"NOTE: HDR detected in primary sensor after {i} vectors. Switching to full width. (Primary vector time {pri_coarse} ~ {pri_time_utc.strftime('%Y-%m-%d %H:%M:%S')})"
                     )
                     PRI_HDR_FLAG = True
 
@@ -603,6 +662,9 @@ class MAGScienceDecoder:
                 )
 
                 if bits_read > MAGScienceDecoder.HDR_VECTOR_WIDTH_THRESHOLD:
+                    print(
+                        f"NOTE: HDR detected in secondary sensor after {i} vectors. Switching to full width. (Primary vector time {pri_coarse} ~ {pri_time_utc.strftime('%Y-%m-%d %H:%M:%S')})"
+                    )
                     SEC_HDR_FLAG = True
 
             secondaryVectors.append(vector)
