@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 class CONSTANTS:
     TOO_MANY_ROWS = "Packet has too many rows"
     VECTORS_ALL_ZERO = "Vectors are all zero"
-    NONE_SEQUENTIAL = "Non sequential packet"
+    NON_SEQUENTIAL = "Non sequential packet"
     PACKET_INCOMPLETE = "packet is incomplete"
     EXPECTED_NUMERIC_FORMAT = "Expected line {line_count} to have a numeric"
     EXPECTED_NUMERIC_MATCH_REGEX = "Expected line [0-9]+ to have a numeric"
@@ -27,3 +27,4 @@ class CONSTANTS:
     APID_MAG_SCIENCE_BM = 0x42C
 
     MAX_FINE_TIME = 65536  # 2^16
+    MAX_SEQUENCE_COUNT = 0x4000  # 2^14

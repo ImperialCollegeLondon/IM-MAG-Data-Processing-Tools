@@ -140,5 +140,4 @@ packets_scionly.csv
 
 
 # working data
-imap_mag_*
-mag_l0*
+tempdata/

@@ -436,9 +436,10 @@ def verify_sequence_counter(
 
         # sequence count must be seqential between packets
         if packet_line_count == 1 and sequence != (
-            (prev_seq + mode_config.sequence_counter_increment) % 0x4000
+            (prev_seq + mode_config.sequence_counter_increment)
+            % CONSTANTS.MAX_SEQUENCE_COUNT
         ):
-            write_error(f"{CONSTANTS.NONE_SEQUENTIAL} detected! {line_id}")
+            write_error(f"{CONSTANTS.NON_SEQUENTIAL} detected! {line_id}")
 
     return packet_line_count
 
@@ -658,7 +659,7 @@ def generate_summary(folder: Path, report_file_glob: str):
                 error = None
                 if line.find(CONSTANTS.VECTORS_ALL_ZERO) != -1:
                     error = "Vectors are all zero errors"
-                elif line.find(CONSTANTS.NONE_SEQUENTIAL) != -1 or line.startswith(
+                elif line.find(CONSTANTS.NON_SEQUENTIAL) != -1 or line.startswith(
                     f"A {CONSTANTS.PACKET_INCOMPLETE}"
                 ):  # ignore last line error
                     error = "Missing science data errors"

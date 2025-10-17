@@ -75,6 +75,15 @@ def test_parse_packets_creates_report():
     assert len(files) == 1
     assert files[0].endswith("MAGScience-normal-(2,2)-8s-20250204-14h56m08s.csv")
 
+def test_parse_packets_creates_report_when_using_glob():
+    global output_file_glob
+    command_start_params[-1] = command_start_params[-1].replace("mag-l0-l1a-t003-in.bin", "mag-l0-l1a-t003-in*")
+    result = runner.invoke(app, command_start_params)
+
+    print(result.output)
+    assert result.exit_code == 0
+    assert f"Processing {SAMPLE_DATA_FOLDER}/mag-l0-l1a-t003-in.bin" in result.stdout
+
 
 def test_parse_packets_results_matched_expected_for_one_packet():
     global output_file_glob
