@@ -7,19 +7,21 @@ from typing import Annotated, Optional
 import typer
 
 import check_gaps
+import filter_packets
+import parse_packets
 import split_packets
 
 app = typer.Typer()
 
 app.add_typer(check_gaps.app, name="check-gap")
 app.add_typer(split_packets.app, name="split-packets")
+app.add_typer(filter_packets.app, name="filter-packets")
+app.add_typer(parse_packets.app, name="parse-packets")
 
 
 @app.command()
 def countdown():
-    print(
-        f"IMAP launch is (provisionally) {get_relative_time(datetime.datetime(2025, 5, 1))}"
-    )
+    print(f"IMAP launch is {get_relative_time(datetime.datetime(2025, 9, 24))}")
 
 
 def version_callback(value: bool):
@@ -62,7 +64,7 @@ def get_relative_time(dt):
     days = delta / DAY
 
     if delta < 0:
-        return "already happened"
+        return "in the past - GO IMAP!"
 
     if delta < 1 * MINUTE:
         if delta == 1:

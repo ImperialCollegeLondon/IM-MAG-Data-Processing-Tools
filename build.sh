@@ -2,10 +2,10 @@
 set -e
 
 # what version is this?
-python3 --version
+poetry run python --version
 
 # restore dependencies
-poetry install
+poetry install -q
 
 # load the python virtual environment
 source .venv/bin/activate

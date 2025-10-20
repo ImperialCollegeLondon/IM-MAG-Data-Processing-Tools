@@ -4,7 +4,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Optional
@@ -13,7 +13,8 @@ import typer
 from click.exceptions import Exit
 
 from constants import CONSTANTS
-from science_mode import Mode, ModeConfig
+from science_mode import Mode, ModeConfig, ModeName
+from time_util import get_met_from_shcourse
 
 app = typer.Typer()
 
@@ -160,6 +161,15 @@ def check_gaps_in_one_file(
 
             sequence = get_integer(line_count, row, "sequence")
 
+            # check if pri_isactive key exists in row, and if it does use it, otherwise assume it is always active as we have no other data
+            pri_is_active = row.get("pri_active", "1") == "1"
+            sec_is_active = row.get("sec_active", "1") == "1"
+
+            if not pri_is_active and not sec_is_active:
+                write_error(
+                    f"Both primary and secondary sensors are inactive on line {line_count + 1}, sequence count: {sequence}"
+                )
+
             if line_count == 1 and packet_counter == 0:
                 # we have our first packet
                 packet_counter += 1
@@ -175,6 +185,8 @@ def check_gaps_in_one_file(
                     prev_seq,
                     packet_start_line_count,
                     False,
+                    pri_is_active,
+                    sec_is_active,
                 )
                 packet_counter += 1
                 packet_start_line_count = line_count
@@ -185,8 +197,14 @@ def check_gaps_in_one_file(
                 mode_config, line_count, packet_line_count, prev_seq, sequence
             )
 
-            hasPrimary = packet_line_count <= mode_config.primary_vectors_per_packet
-            hasSeconday = packet_line_count <= mode_config.secondary_vectors_per_packet
+            hasPrimary = (
+                packet_line_count <= mode_config.primary_vectors_per_packet
+                and pri_is_active
+            )
+            hasSeconday = (
+                packet_line_count <= mode_config.secondary_vectors_per_packet
+                and sec_is_active
+            )
 
             if packet_line_count > mode_config.rows_per_packet:
                 if packet_line_count == mode_config.rows_per_packet + 1:
@@ -248,6 +266,8 @@ def check_gaps_in_one_file(
         prev_seq,
         primary_vector_count,
         secondary_vector_count,
+        pri_is_active,
+        sec_is_active,
     )
 
 
@@ -318,6 +338,8 @@ def complete_gap_check(
     prev_seq,
     primary_vector_count,
     secondary_vector_count,
+    pri_is_active,
+    sec_is_active,
 ):
     verify_packet_completeness(
         primary_vector_count,
@@ -326,6 +348,8 @@ def complete_gap_check(
         prev_seq,
         packet_start_line_count,
         True,
+        pri_is_active,
+        sec_is_active,
     )
 
     if exit_code != 0:
@@ -379,9 +403,9 @@ def validate_check_gap_args(
 
     # files in v1 format will not match the regex so guess mode from file name
     if not match and mode == Mode.auto:
-        if "burst" in data_file.name:
+        if ModeName.burst in data_file.name:
             mode = Mode.burst128
-        elif "normal" in data_file.name:
+        elif ModeName.normal in data_file.name:
             mode = Mode.normalE8
         elif "IALiRT" in data_file.name:
             mode = Mode.i_alirt
@@ -412,9 +436,10 @@ def verify_sequence_counter(
 
         # sequence count must be seqential between packets
         if packet_line_count == 1 and sequence != (
-            (prev_seq + mode_config.sequence_counter_increment) % 0x4000
+            (prev_seq + mode_config.sequence_counter_increment)
+            % CONSTANTS.MAX_SEQUENCE_COUNT
         ):
-            write_error(f"{CONSTANTS.NONE_SEQUENTIAL} detected! {line_id}")
+            write_error(f"{CONSTANTS.NON_SEQUENTIAL} detected! {line_id}")
 
     return packet_line_count
 
@@ -428,9 +453,7 @@ def verify_timestamp(
     fine: int,
     timestamp_type: str,
 ):
-    sclk = (CONSTANTS.IMAP_EPOCH + timedelta(seconds=coarse)).strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
+    sclk = get_met_from_shcourse(coarse).strftime("%Y-%m-%d %H:%M:%S")
     line_id = f"line number {line_count + 1}, sequence count: {sequence}, SCLK: {sclk}"
 
     if fine < MIN_FINE or fine > MAX_FINE:
@@ -516,6 +539,12 @@ def is_non_empty_vector(
     # take the first 3 chars
     pri_or_sec = primary_or_secondary[0:3]
 
+    # check if pri_isactive key exists in row, and if it does use it, otherwise assume it is always active as we have no other data
+    is_active = row.get(f"{pri_or_sec}_active", "1") == "1"
+
+    if not is_active:
+        return False
+
     x = row[f"x_{pri_or_sec}"]
     y = row[f"y_{pri_or_sec}"]
     z = row[f"z_{pri_or_sec}"]
@@ -556,18 +585,25 @@ def verify_packet_completeness(
     prev_seq: int,
     packet_start_line_count: int,
     is_last_packet: bool,
+    pri_is_active: bool,
+    sec_is_active: bool,
 ):
     packet_name = "The last" if is_last_packet else "A"
+
     if (
-        primary_vector_count < mode_config.primary_vectors_per_packet
-        or secondary_vector_count < mode_config.secondary_vectors_per_packet
+        pri_is_active and primary_vector_count < mode_config.primary_vectors_per_packet
+    ) or (
+        sec_is_active
+        and secondary_vector_count < mode_config.secondary_vectors_per_packet
     ):
         write_error(
             f"{packet_name} {CONSTANTS.PACKET_INCOMPLETE}, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
         )
     if (
-        primary_vector_count > mode_config.primary_vectors_per_packet
-        or secondary_vector_count > mode_config.secondary_vectors_per_packet
+        pri_is_active and primary_vector_count > mode_config.primary_vectors_per_packet
+    ) or (
+        sec_is_active
+        and secondary_vector_count > mode_config.secondary_vectors_per_packet
     ):
         write_error(
             f"{packet_name} {CONSTANTS.PACKET_TOO_BIG}, found {primary_vector_count} primary and {secondary_vector_count} secondary vectors, expected {mode_config.primary_vectors_per_packet} and {mode_config.secondary_vectors_per_packet}. line number {packet_start_line_count + 1}, sequence count: {prev_seq}"
@@ -623,7 +659,7 @@ def generate_summary(folder: Path, report_file_glob: str):
                 error = None
                 if line.find(CONSTANTS.VECTORS_ALL_ZERO) != -1:
                     error = "Vectors are all zero errors"
-                elif line.find(CONSTANTS.NONE_SEQUENTIAL) != -1 or line.startswith(
+                elif line.find(CONSTANTS.NON_SEQUENTIAL) != -1 or line.startswith(
                     f"A {CONSTANTS.PACKET_INCOMPLETE}"
                 ):  # ignore last line error
                     error = "Missing science data errors"

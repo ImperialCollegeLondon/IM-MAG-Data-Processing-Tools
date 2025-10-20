@@ -8,12 +8,18 @@ from io import TextIOWrapper
 from pathlib import Path
 from typing import List, Optional
 
-import ccsdspy
 import typer
-from ccsdspy import PacketField
 from ccsdspy.utils import iter_packet_bytes
 from click.exceptions import Exit
 from rich.progress import Progress, track
+
+from constants import CONSTANTS
+from packet_util import (
+    get_imap_basic_packet_def,
+    get_imap_science_packet_headers_only_def,
+    parse_apids,
+)
+from time_util import get_met_from_shcourse
 
 app = typer.Typer()
 
@@ -21,8 +27,6 @@ report_file: TextIOWrapper
 sci_report_file: TextIOWrapper
 exit_code = 0
 packet_counter = 0
-APID_MAG_START = 0x3E0
-APID_MAG_END = 0x45F
 is_multi_file = False
 
 
@@ -88,7 +92,7 @@ def split_packets(
     )
 
     if globPath:
-        process_multi_file(
+        _split_packets_in_multiple_files_from_glob(
             globPath,
             ctx,
             report_file_path,
@@ -100,7 +104,7 @@ def split_packets(
         )
         return
 
-    validate_parse_packets_args(
+    _validate_split_packets_args(
         packets_files, report_file_path, no_report, summarise_only, limit, apids
     )
 
@@ -110,7 +114,7 @@ def split_packets(
             headers = True
         report_file = open(report_file_path, "a")
         if headers:
-            report_file.write("APID,Sequence Count,Length,SCLK\n")
+            report_file.write("APID,Sequence Count,Length,SHCOURSE,MET_UTC\n")
 
         sci_file = (
             report_file_path.parent
@@ -122,12 +126,12 @@ def split_packets(
         sci_report_file = open(sci_file, "a")
         if headers:
             sci_report_file.write(
-                "APID,PHSEQCNT,PHDLEN,SCLK,PUS_SSUBTYPE,COMPRESSION,FOB_ACT,FIB_ACT,PRI_SENS,PRI_VECSEC,SEC_VECSEC,PRI_COARSETM,PRI_FNTM,SEC_COARSETM,SEC_FNTM\n"
+                "APID,PHSEQCNT,PHDLEN,SHCOURSE,PUS_SSUBTYPE,COMPRESSION,FOB_ACT,FIB_ACT,PRI_SENS,PRI_VECSEC,SEC_VECSEC,PRI_COARSETM,PRI_FNTM,SEC_COARSETM,SEC_FNTM,MET_UTC\n"
             )
 
     filter_to_apids = parse_apids(apids)
 
-    parse_packets_in_one_file(
+    _split_packets_in_one_file(
         packets_files, no_report, limit, mag_only, filter_to_apids, summarise_only
     )
 
@@ -139,19 +143,7 @@ def split_packets(
         raise typer.Exit(code=exit_code)
 
 
-def parse_apids(apids):
-    filter_to_apids = []
-    if apids:
-        for apid in apids:
-            # if it is an integer, convert it to an int
-            if re.match(r"^[0-9]+$", apid):
-                filter_to_apids.append(int(apid, 10))
-            else:
-                filter_to_apids.append(int(apid, 16))
-    return filter_to_apids
-
-
-def parse_packets_in_one_file(
+def _split_packets_in_one_file(
     packet_file: Path,
     no_report: bool,
     limit: int,
@@ -164,54 +156,19 @@ def parse_packets_in_one_file(
     global report_file
     global sci_report_file
 
-    pktDefinition = ccsdspy.FixedLength(
-        [
-            PacketField(name="SHCOARSE", data_type="uint", bit_length=32),
-        ]
-    )
-    sciPktDefinition = ccsdspy.FixedLength(
-        [
-            PacketField(name="SHCOARSE", data_type="uint", bit_length=32),
-            PacketField(
-                name="PUS_SSUBTYPE", data_type="uint", bit_length=8, bit_offset=96
-            ),
-            PacketField(
-                name="COMPRESSION", data_type="uint", bit_length=1, bit_offset=104
-            ),
-            PacketField(name="FOB_ACT", data_type="uint", bit_length=1, bit_offset=105),
-            PacketField(name="FIB_ACT", data_type="uint", bit_length=1, bit_offset=106),
-            PacketField(
-                name="PRI_SENS", data_type="uint", bit_length=1, bit_offset=107
-            ),
-            PacketField(
-                name="PRI_VECSEC", data_type="uint", bit_length=3, bit_offset=112
-            ),
-            PacketField(
-                name="SEC_VECSEC", data_type="uint", bit_length=3, bit_offset=115
-            ),
-            PacketField(
-                name="PRI_COARSETM", data_type="uint", bit_length=32, bit_offset=120
-            ),
-            PacketField(
-                name="PRI_FNTM", data_type="uint", bit_length=16, bit_offset=152
-            ),
-            PacketField(
-                name="SEC_COARSETM", data_type="uint", bit_length=32, bit_offset=168
-            ),
-            PacketField(
-                name="SEC_FNTM", data_type="uint", bit_length=16, bit_offset=200
-            ),
-        ]
-    )
+    pktDefinition = get_imap_basic_packet_def()
+    sciPktDefinition = get_imap_science_packet_headers_only_def()
 
     if limit != 0 and packet_counter >= limit:
         return
 
     size = os.path.getsize(packet_file)
+    processed_bytes = 0
     with Progress(refresh_per_second=1) as progress:
         task1 = progress.add_task(f"Processing {packet_file}", total=size)
         for packet_bytes in iter_packet_bytes(packet_file, include_primary_header=True):
             progress.update(task1, advance=len(packet_bytes))
+            processed_bytes += len(packet_bytes)
 
             fileLikeObject = io.BytesIO(packet_bytes)
             pkt = pktDefinition.load(fileLikeObject, include_primary_header=True)
@@ -219,7 +176,7 @@ def parse_packets_in_one_file(
 
             # check the packet shopuld not be filtered out
             if mag_only:
-                if apid < APID_MAG_START or apid > APID_MAG_END:
+                if apid < CONSTANTS.APID_MAG_START or apid > CONSTANTS.APID_MAG_END:
                     continue
 
             if apid_filter:
@@ -227,7 +184,10 @@ def parse_packets_in_one_file(
                     continue
 
             is_science = False
-            if apid == 0x41C or apid == 0x42C:
+            if (
+                apid == CONSTANTS.APID_MAG_SCIENCE_NM
+                or apid == CONSTANTS.APID_MAG_SCIENCE_BM
+            ):
                 is_science = True
 
                 fileLikeObject.seek(0)
@@ -254,8 +214,11 @@ def parse_packets_in_one_file(
             packet_counter += 1
 
             if not no_report:
+                met_utc = get_met_from_shcourse(int(pkt["SHCOARSE"][0])).strftime(
+                    "%Y-%m-%d %H:%M:%S.%f"
+                )[:-3]
                 report_file.write(
-                    f"{apid},{pkt['CCSDS_SEQUENCE_COUNT'][0]},{pkt['CCSDS_PACKET_LENGTH'][0]},{pkt['SHCOARSE'][0]}\n"
+                    f"{apid},{pkt['CCSDS_SEQUENCE_COUNT'][0]},{pkt['CCSDS_PACKET_LENGTH'][0]},{pkt['SHCOARSE'][0]},{met_utc}\n"
                 )
                 if is_science:
                     sci_report_file.write(
@@ -271,6 +234,7 @@ def parse_packets_in_one_file(
                         + f"{pkt['PRI_FNTM'][0]},"
                         + f"{pkt['SEC_COARSETM'][0]},"
                         + f"{pkt['SEC_FNTM'][0]}"
+                        + f",{met_utc}"
                         + "\n"
                     )
 
@@ -280,11 +244,11 @@ def parse_packets_in_one_file(
 
     if not summarise_only:
         print(
-            f"Saved {packet_counter} packets from {packet_file} to {packet_file.parent} ({size} bytes)"
+            f"Saved {packet_counter} packets from {packet_file} to {packet_file.parent} ({processed_bytes} bytes processed)"
         )
 
 
-def process_multi_file(
+def _split_packets_in_multiple_files_from_glob(
     globPath, ctx, report_file_path, no_report, summarise_only, limit, apids, mag_only
 ):
     multifile_exit_code = 0
@@ -326,13 +290,13 @@ def process_multi_file(
         raise typer.Exit(code=multifile_exit_code)
 
 
-def validate_parse_packets_args(
+def _validate_split_packets_args(
     data_file: Path,
     report_file_path,
-    no_report,
-    summarise_only,
+    no_report: bool,
+    summarise_only: bool,
     limit: int,
-    apids: List[str],
+    apids: List[str] | None,
 ):
     if not data_file.exists():
         print(f"{data_file} does not exist")

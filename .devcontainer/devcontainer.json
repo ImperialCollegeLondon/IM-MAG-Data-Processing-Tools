@@ -12,18 +12,12 @@
             "userUid": "1000",
             "userGid": "1000",
             "upgradePackages": "true"
-        }
-        // poetry also available as a dev container feature but we install it using dev-env-first-time.sh so PATH is setup
-		//"ghcr.io/devcontainers-contrib/features/poetry:2": {},
-        // uncommment act if you want to eb able to run github actions locally. This needs "docker in docker" setup for devcontainer
-		//"ghcr.io/dhoeric/features/act:1": {}
+        },
+        "ghcr.io/gvatsal60/dev-container-features/pre-commit:1": {},
 	},
-	"remoteEnv": {
-		// add the pyenv bin and poetry to the PATH for the dev user vscode
-        "PATH": "/home/vscode/.pyenv/bin:/home/vscode/.local/bin:${containerEnv:PATH}"
-    },
+	"postCreateCommand": "pre-commit install-hooks && pre-commit autoupdate",
 	// install poetry on first startup in vscode
-	"postStartCommand": "./dev-env-first-time.sh",
+	"postStartCommand": "poetry install",
 
 	// Configure tool-specific properties.
 	"customizations": {

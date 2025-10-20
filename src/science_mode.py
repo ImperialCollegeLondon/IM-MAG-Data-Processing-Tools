@@ -4,7 +4,13 @@ import re
 from enum import Enum
 from pathlib import Path
 
-from src.constants import CONSTANTS
+from constants import CONSTANTS
+
+
+# ModeName enum:
+class ModeName(str, Enum):
+    normal = "normal"
+    burst = "burst"
 
 
 class Mode(str, Enum):
