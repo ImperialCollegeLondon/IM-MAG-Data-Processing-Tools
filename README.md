@@ -13,7 +13,7 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 - `mag split-packets --limit 100 --all data/file.bin` - split the first 100 packets (spacecraft, mag, other instruments) in file.bin into individual files in folders based on apid
 - `mag split-packets --apid 1000 --apid 1001 data/*.bin` - extract all packets with apids 1000 and 1001 from all files in data/*.bin and save them into folders based on apid
 - `mag split-packets --summarise --apid 0x3e9 --report packets.csv "tests/data/1001/*.bin` - create a packets.csv file with a summary of all packets with apid 1001 in files matching data/*.bin
-- `mag filter-packets --apid 1000 --apid 1001 --output-file filtered_packets.bin data/*.bin ` - find all packets with apids 1000 and 1001 from all files in data/*.bin and merge them into a single file called filtered_packets.bin excluding any duplicates
+- `mag filter-packets --apid 1000 --apid 1001 --sort-packets --output-file filtered_packets.bin data/*.bin ` - find all packets with apids 1000 and 1001 from all files in data/*.bin and merge them into a single file called filtered_packets.bin excluding any duplicates and sorted by shcourse and seq count
 - `mag filter-packets --limit 100 --mag-only --output-file filtered_packets.bin data/packets.bin ` - get the first 100 MAG packets from data/packets.bin and save them into filtered_packets.bin
 - `mag parse-packets --limit 100 --apid 0x42C --output-dir parsed_packets data/packets.bin` - parse the first 100 MAG BM Science packets in data/packets.bin and save the extracted science data into CSV files in the parsed_packets folder
 
@@ -169,3 +169,42 @@ This repository uses an opinionated setup for a python command line app. It uses
 ## Continuous Integration with GitHub Actions
 
 The `.github/workflows/ci.yml` define a workflow to run on build and test the CLI against multiple versions of python. Build artifacts are generated and a copy of the cli app is available for download for every build
+
+## Gap checking SDC data - worked example
+
+```shell
+poetry install
+$(poetry env activate)
+
+pip install imap-data-access
+
+export KEY=SOME_SECRET
+export URL=https://api.imap-mission.com/api-key
+export START_DATE=20251015
+
+# get the latests l0 files since X, get just file names, download them:
+IMAP_API_KEY=$KEY IMAP_DATA_ACCESS_URL=$URL imap-data-access query --instrument mag --start-date $START_DATE --data-level l0 --version latest
+IMAP_API_KEY=$KEY IMAP_DATA_ACCESS_URL=$URL imap-data-access query --instrument mag --start-date $START_DATE --data-level l0 --version latest | grep -iEwo 'imap_\w+.pkts'
+IMAP_API_KEY=$KEY IMAP_DATA_ACCESS_URL=$URL imap-data-access download imap_mag_l0_raw_20251010_v002.pkts
+
+# Full example - Find, iterate, download, gapcheck packets file
+rm -f downloaded.txt
+IMAP_API_KEY=$KEY IMAP_DATA_ACCESS_URL=$URL imap-data-access query --instrument mag --start-date $START_DATE --data-level l0 --version latest | grep -iEwo 'imap_\w+.pkts' | while read -r line ; do
+    echo "downloading $line"
+    IMAP_API_KEY=$KEY IMAP_DATA_ACCESS_URL=$URL imap-data-access download $line | grep -iEo '/[-a-z0-9\/_\.]+imap_mag\w+.pkts' | tee -a downloaded.txt
+done
+
+cat downloaded.txt | while read -r line ; do
+   file_name=$(basename $line)
+   new_file_name=${file_name/.pkts/.deduped.pkts}
+   folder=$(echo $file_name | grep -iEo '[0-9]{8}')
+
+   echo "clearing and working in $folder"
+
+   rm -rf $folder
+   mkdir $folder
+   mag filter-packets --sort-packets -o $folder/$new_file_name $line
+   mag parse-packets -o $folder $folder/$new_file_name
+   mag check-gap "$folder/*.csv"
+done
+```
