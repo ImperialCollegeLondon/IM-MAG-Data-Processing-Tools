@@ -1,0 +1,42 @@
+poetry install
+
+$(poetry env activate)
+
+pip install imap-data-access
+imap-data-access -h
+
+export KEY=c59548112ee6864e4ee63f08cae25a0fe735efc666138a0ac907893e6861185d
+export URL=https://api.imap-mission.com/api-key
+export START_DATE=20251019
+
+# get the latests l0 files since
+IMAP_API_KEY=$KEY IMAP_DATA_ACCESS_URL=$URL imap-data-access query --instrument mag --start-date $START_DATE --data-level l0 --version latest
+
+# Get just the file names
+IMAP_API_KEY=$KEY IMAP_DATA_ACCESS_URL=$URL imap-data-access query --instrument mag --start-date $START_DATE --data-level l0 --version latest | grep -iEwo 'imap_\w+.pkts'
+
+# download a file into CWD
+IMAP_API_KEY=$KEY IMAP_DATA_ACCESS_URL=$URL imap-data-access download imap_mag_l0_raw_20251010_v002.pkts
+
+# iterate and download them
+cd tempdata
+rm -f downloaded.txt
+export START_DATE=20251029
+IMAP_API_KEY=$KEY IMAP_DATA_ACCESS_URL=$URL imap-data-access query --instrument mag --start-date $START_DATE --data-level l0 --version latest | grep -iEwo 'imap_\w+.pkts' | while read -r line ; do
+    echo "downloading $line"
+    IMAP_API_KEY=$KEY IMAP_DATA_ACCESS_URL=$URL imap-data-access download $line | grep -iEo '/[-a-z0-9\/_\.]+imap_mag\w+.pkts' | tee -a downloaded.txt
+done
+
+cat downloaded.txt | while read -r line ; do
+   file_name=$(basename $line)
+   new_file_name=${file_name/.pkts/.deduped.pkts}
+   folder=$(echo $file_name | grep -iEo '[0-9]{8}')
+
+   echo "clearing and working in $folder"
+
+   rm -rf $folder
+   mkdir $folder
+   mag filter-packets --sort-packets -o $folder/$new_file_name $line
+   mag parse-packets -o $folder $folder/$new_file_name
+   mag check-gap "$folder/*.csv"
+done
