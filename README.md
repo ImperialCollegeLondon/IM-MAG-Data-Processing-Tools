@@ -15,6 +15,7 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 - `mag split-packets --summarise --apid 0x3e9 --report packets.csv "tests/data/1001/*.bin` - create a packets.csv file with a summary of all packets with apid 1001 in files matching data/*.bin
 - `mag filter-packets --apid 1000 --apid 1001 --sort-packets --output-file filtered_packets.bin data/*.bin ` - find all packets with apids 1000 and 1001 from all files in data/*.bin and merge them into a single file called filtered_packets.bin excluding any duplicates and sorted by shcourse and seq count
 - `mag filter-packets --limit 100 --mag-only --output-file filtered_packets.bin data/packets.bin ` - get the first 100 MAG packets from data/packets.bin and save them into filtered_packets.bin
+- `mag parse-packets data/packets.bin` - parse the Science and I-ALiRT packets (both MAG I-LiRT and spacecraft formats are supported) in data/packets.bin and save the extracted science data into CSV files in the current folder
 - `mag parse-packets --limit 100 --apid 0x42C --output-dir parsed_packets data/packets.bin` - parse the first 100 MAG BM Science packets in data/packets.bin and save the extracted science data into CSV files in the parsed_packets folder
 
 ## Mag cli `USERS` Quick Start
