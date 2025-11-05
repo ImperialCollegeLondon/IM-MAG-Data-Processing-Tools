@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mag"
-version = "2.0.0"
+version = "2.1.0"
 description = "Data tools for MAG GSE data processing"
 authors = ["Imperial College"]
 readme = "README.md"
