@@ -20,7 +20,7 @@ from packet_util import (
     parse_apids,
 )
 from science_decoder import MAGScienceDecoder
-from src.ialirt_decoder import IALIRTDecoder
+from ialirt_decoder import IALIRTDecoder
 from time_util import humanise_timedelta
 
 app = typer.Typer()
