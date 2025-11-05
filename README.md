@@ -4,7 +4,7 @@ A collection of tools to process IMAP Magnetometer science data, which are 3 dim
 
 ## Commands examples
 
-- `mag countdown` - How long untill IMAP launch?
+- `mag countdown` - How long ~until~ since IMAP launch?
 - `mag check-gap sample-data/MAGScience-normal-(2,2)-1s-20230922-11h50.csv` - list all gaps in timestamps and sequence counters in science data csv file. Will try and detect packet/vector rates automatically
 - `mag check-gap sample-data/**.*.csv` - Use glob to match files and then check gaps in each in turn. Will generate a summary report for all files.
 - `mag check-gap --mode normalE8 folder/burst_data20230112-11h23-bad-time-fine.csv` - list all gaps in timestamps and sequence counters in science data csv file and forces the mode to be normalE8
