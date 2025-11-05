@@ -20,6 +20,7 @@ from packet_util import (
     parse_apids,
 )
 from science_decoder import MAGScienceDecoder
+from src.ialirt_decoder import IALIRTDecoder
 from time_util import humanise_timedelta
 
 app = typer.Typer()
@@ -123,7 +124,10 @@ def _parse_packets_in_one_file(
     processed_bytes = 0
     ignored_packets = 0
     started_at = datetime.now()
-    decoder = MAGScienceDecoder(output_folder)
+    sci_decoder = MAGScienceDecoder(output_folder)
+    ialirt_mag_decoder = IALIRTDecoder(output_folder, "mag")
+    ialirt_scpacket_decoder = IALIRTDecoder(output_folder, "sc")
+
     with Progress(refresh_per_second=1) as progress:
         task1 = progress.add_task(f"Processing {packet_file}", total=size)
         for packet_bytes in iter_packet_bytes(packet_file, include_primary_header=True):
@@ -133,6 +137,23 @@ def _parse_packets_in_one_file(
             fileLikeObject = io.BytesIO(packet_bytes)
             pkt = pktDefinition.load(fileLikeObject, include_primary_header=True)
             apid = pkt["CCSDS_APID"][0].astype(int)
+
+            if apid == CONSTANTS.APID_MAG_IALIRT:
+                ialirt_mag_decoder.extract_packet_to_csv(apid, packet_bytes)
+                packet_counter += 1
+                if limit > 0 and packet_counter >= limit:
+                    print(f"Limit of {limit} packets reached")
+                    break
+
+                continue
+            elif apid == CONSTANTS.APID_SPACECRAFT_IALIRT:
+                ialirt_scpacket_decoder.extract_packet_to_csv(apid, packet_bytes)
+                packet_counter += 1
+                if limit > 0 and packet_counter >= limit:
+                    print(f"Limit of {limit} packets reached")
+                    break
+
+                continue
 
             # check the packet should not be filtered out
             if apid < CONSTANTS.APID_MAG_START or apid > CONSTANTS.APID_MAG_END:
@@ -168,7 +189,7 @@ def _parse_packets_in_one_file(
             packet_counter += 1
 
             # decode vectors!
-            decoder.extract_packet_to_csv(
+            sci_decoder.extract_packet_to_csv(
                 apid,
                 pkt["CCSDS_SEQUENCE_COUNT"][0].astype(int),
                 pkt["CCSDS_PACKET_LENGTH"][0].astype(int),
@@ -193,6 +214,9 @@ def _parse_packets_in_one_file(
 
     ended_at = datetime.now()
     duration = ended_at - started_at
+    sci_decoder.close_all()
+    ialirt_mag_decoder.close_all()
+    ialirt_scpacket_decoder.close_all()
 
     print(
         f"Extracted data from {packet_counter} packets in {packet_file} to {output_folder.name} ({processed_bytes} bytes processed in {humanise_timedelta(duration)}). Ignored {ignored_packets} packets."
